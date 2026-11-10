@@ -74,6 +74,7 @@ final class AppModel {
 
     @ObservationIgnored private var settingsAudioUsers = 0
     @ObservationIgnored private var keyMonitors: [Any] = []
+    @ObservationIgnored private let globalInput = GlobalInput()
     @ObservationIgnored private var pushToTalkPressed = false
     @ObservationIgnored private var shortcutsHeld: Set<Shortcuts.Action> = []
     @ObservationIgnored private let notifier = Notifier()
@@ -143,7 +144,10 @@ final class AppModel {
                 try? await Task.sleep(for: .milliseconds(100))
                 guard let self else { return }
                 tick += 1
-                if tick % 20 == 0 { self.checkAudioHealth() }
+                if tick % 20 == 0 {
+                    self.checkAudioHealth()
+                    self.refreshAccessibility()
+                }
                 let output = self.voice.isRunning ? self.voice.takeOutputLevel() : -100
                 if abs(output - self.outputLevel) > 0.5 { self.outputLevel = output }
                 if !self.voice.isCapturing {
@@ -392,13 +396,16 @@ final class AppModel {
         }
     }
 
+    /// Also picks up access granted since the last call: hotkeys start working without a relaunch.
     func refreshAccessibility() {
-        accessibilityTrusted = AXIsProcessTrusted()
+        globalInput.refresh()
+        if accessibilityTrusted != globalInput.hasKeyboardAccess { accessibilityTrusted = globalInput.hasKeyboardAccess }
     }
 
     /// Shows the system prompt that leads to Privacy & Security → Accessibility.
     func requestAccessibility() {
-        accessibilityTrusted = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+        _ = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+        refreshAccessibility()
     }
 
     // MARK: - Self state
@@ -559,12 +566,10 @@ final class AppModel {
         }) {
             keyMonitors.append(local)
         }
-        // Other apps' key events only arrive with Accessibility access; mouse buttons work without it.
-        if let global = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: { [weak self] event in
-            MainActor.assumeIsolated { _ = self?.handleInputEvent(event) }
-        }) {
-            keyMonitors.append(global)
-        }
+        // Other apps' key events only arrive with Accessibility (or Input Monitoring) access; mouse
+        // buttons work without it.
+        globalInput.onEvent = { [weak self] event in _ = self?.handleInputEvent(event) }
+        refreshAccessibility()
     }
 
     /// Returns true when the event is a hotkey of ours and should not reach the app.
@@ -590,6 +595,7 @@ final class AppModel {
             let held = shortcutsHeld.contains(action)
             guard let pressed = key.pressedState(for: event, currentlyPressed: held) else { continue }
             if pressed && !held {
+                Self.logger.debug("shortcut: \(action.title, privacy: .public)")
                 shortcutsHeld.insert(action)
                 switch action {
                 case .toggleMicrophone: toggleMic()

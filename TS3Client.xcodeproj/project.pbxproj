@@ -11,6 +11,7 @@
 		0D06AEB0525E68F0BF52E7AB /* you_kicked_server.wav in Resources */ = {isa = PBXBuildFile; fileRef = 5ED173E114F408585DF9D7A6 /* you_kicked_server.wav */; };
 		0E569FFE9CBEC207BFEE61D3 /* mic_activated.wav in Resources */ = {isa = PBXBuildFile; fileRef = DA04AA14B49D5CCC657F8331 /* mic_activated.wav */; };
 		0F2DFE7B8AC3C5EF39870C41 /* sound_resumed.wav in Resources */ = {isa = PBXBuildFile; fileRef = 3A74DDB3C800F3B65D6DD6D6 /* sound_resumed.wav */; };
+		170E051B2AC1F185EC25A85A /* GlobalInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1ADA0177EEBF9FC7EC8846 /* GlobalInput.swift */; };
 		1BFFCAEADEE726519DFF433A /* away_activated.wav in Resources */ = {isa = PBXBuildFile; fileRef = A343523DCD81550C053D4486 /* away_activated.wav */; };
 		20742B52A19D049F863C87F6 /* sound_muted.wav in Resources */ = {isa = PBXBuildFile; fileRef = AF2404293597C50096DA9513 /* sound_muted.wav */; };
 		268960AFEDC48FC99B6D488F /* Storage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6146D4FD2328C55D28B5424 /* Storage.swift */; };
@@ -79,6 +80,7 @@
 		F6097460256FDFAED872C0B2 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		F6146D4FD2328C55D28B5424 /* Storage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Storage.swift; sourceTree = "<group>"; };
 		FA99BFCAAA90DE17E495EC5F /* you_kicked_channel.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = you_kicked_channel.wav; sourceTree = "<group>"; };
+		FB1ADA0177EEBF9FC7EC8846 /* GlobalInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalInput.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,6 +159,7 @@
 				D3933394BF6ADA29885CA66F /* BBCode.swift */,
 				3D2F6FFDE374361960677C02 /* ChatPanel.swift */,
 				86B214DF87D7821164958832 /* ConnectView.swift */,
+				FB1ADA0177EEBF9FC7EC8846 /* GlobalInput.swift */,
 				8C562BF2C264F7C6B67F2A3A /* Hotkey.swift */,
 				400AACEA84DDED2D574B9B70 /* InfoPanel.swift */,
 				F6097460256FDFAED872C0B2 /* MainView.swift */,
@@ -286,6 +289,7 @@
 				D41A088A908BB472B45C5F40 /* BBCode.swift in Sources */,
 				9BEA51A3C9AAC54943C563B2 /* ChatPanel.swift in Sources */,
 				67110B4BDE7F0C9947612B7A /* ConnectView.swift in Sources */,
+				170E051B2AC1F185EC25A85A /* GlobalInput.swift in Sources */,
 				2768DCEAD5F4D1905CC14D3B /* Hotkey.swift in Sources */,
 				8200AF041AE7ADD961F7A3DF /* InfoPanel.swift in Sources */,
 				3F1C380CE7F5398276D1867F /* MainView.swift in Sources */,
