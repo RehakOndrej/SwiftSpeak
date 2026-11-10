@@ -128,8 +128,8 @@ extension AudioSettings: Codable {
 public final class VoiceEngine: @unchecked Sendable {
     /// Called with (codec, encoded 20 ms frame); an empty frame marks the end of a transmission.
     public var onEncodedFrame: (@Sendable (UInt8, [UInt8]) -> Void)? {
-        get { frameSink.withLock { $0 } }
-        set { frameSink.withLock { $0 = newValue } }
+        get { frameSink.withLock { $0?.call } }
+        set { frameSink.withLock { $0 = newValue.map(FrameSink.init) } }
     }
     /// (level in dBFS after processing, whether the activation gate is open), about 10 times per second.
     public var onInputLevel: (@Sendable (Float, Bool) -> Void)?
@@ -211,7 +211,13 @@ public final class VoiceEngine: @unchecked Sendable {
     private let playback = Mutex(PlaybackState())
     /// Only touched from `receive` (the network queue), never from the render thread.
     private let decoders = Mutex<[UInt16: SpeakerDecoder]>([:])
-    private let frameSink = Mutex<(@Sendable (UInt8, [UInt8]) -> Void)?>(nil)
+    /// The closure sits in a struct on purpose. Kept directly in the `Mutex`, every read through
+    /// `withLock` wrapped it in one more layer of compiler-made conversion and stored that back;
+    /// with a read per microphone buffer, calling it overflowed the stack after some minutes.
+    private struct FrameSink: Sendable {
+        let call: @Sendable (UInt8, [UInt8]) -> Void
+    }
+    private let frameSink = Mutex<FrameSink?>(nil)
     /// Per-speaker volume set by the user (linear; 0 = muted locally). Missing = 1.
     private let speakerGains = Mutex<[UInt16: Float]>([:])
     // Engines: only ever touched on `audioQueue`. With echo cancellation one engine does both jobs.

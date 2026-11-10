@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Testing
 @testable import TS3Audio
 
@@ -156,6 +157,20 @@ extension VoiceEnginePlaybackTests {
         let level = engine.takeOutputLevel()
         engine.stop()
         #expect(level > -90, "after rebuild: output \(level) dBFS")
+    }
+}
+
+@Suite struct VoiceEngineCallbackTests {
+    /// Regression: each read of `onEncodedFrame` nested the stored closure one level deeper, and
+    /// after ten minutes of microphone buffers calling it overflowed the stack (a crash, so this
+    /// test fails by crashing).
+    @Test func readingTheFrameSinkManyTimesDoesNotNestIt() {
+        let engine = VoiceEngine()
+        let calls = Mutex(0)
+        engine.onEncodedFrame = { _, _ in calls.withLock { $0 += 1 } }
+        for _ in 0..<300_000 { _ = engine.onEncodedFrame }
+        engine.onEncodedFrame?(4, [])
+        #expect(calls.withLock { $0 } == 1)
     }
 }
 
