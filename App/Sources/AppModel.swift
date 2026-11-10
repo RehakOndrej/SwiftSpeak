@@ -138,10 +138,9 @@ final class AppModel {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(100))
                 guard let self else { return }
-                let running = self.voice.isRunning
-                let output = running ? self.voice.takeOutputLevel() : -100
+                let output = self.voice.isRunning ? self.voice.takeOutputLevel() : -100
                 if abs(output - self.outputLevel) > 0.5 { self.outputLevel = output }
-                if !running {
+                if !self.voice.isCapturing {
                     if self.inputLevel != -100 { self.inputLevel = -100 }
                     if self.inputGateOpen { self.inputGateOpen = false }
                 }
@@ -171,6 +170,8 @@ final class AppModel {
             }
         }
         soundPack.isEnabled = soundsEnabled
+        // A sound that had to start the speakers on its own: stop them again once it's done.
+        soundPack.onStartedPlayback = { [weak self] in self?.stopAudioWhenIdle() }
         client.onEvent = { [weak self] event in
             self?.soundPack.play(event)
         }
@@ -331,7 +332,7 @@ final class AppModel {
             do { try voice.start() } catch { audioError = error.localizedDescription }
             return
         }
-        guard !voice.isRunning else { return }
+        guard !voice.isCapturing else { return }
         do {
             try voice.start()
             audioError = voice.startWarning

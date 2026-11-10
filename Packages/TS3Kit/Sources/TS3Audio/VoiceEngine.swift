@@ -205,6 +205,8 @@ public final class VoiceEngine: @unchecked Sendable {
     /// Per-speaker volume set by the user (linear; 0 = muted locally). Missing = 1.
     private let speakerGains = Mutex<[UInt16: Float]>([:])
     private var engines: [AVAudioEngine] = []
+    /// The engine with the microphone tap; nil while only playback runs (e.g. for a notification sound).
+    private var captureEngine: AVAudioEngine?
     private let engineLock = NSLock()
 
     private let opusFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 48_000, channels: 1, interleaved: false)!
@@ -294,17 +296,19 @@ public final class VoiceEngine: @unchecked Sendable {
 
     // MARK: - Lifecycle
 
+    /// Starts playback and capture. If only playback was running, adds capture to it.
     public func start() throws {
         engineLock.lock()
         defer { engineLock.unlock() }
-        guard engines.isEmpty else { return }
+        guard captureEngine == nil else { return }
         startWarning = nil
         let settings = capture.withLock { $0.settings }
         do {
             if settings.echoCancellation {
+                stopEngines() // voice processing needs input and output on one engine
                 try startDuplex(settings)
             } else {
-                try startOutput(settings)
+                if engines.isEmpty { try startOutput(settings) }
                 try startInput(settings)
             }
         } catch {
@@ -330,27 +334,50 @@ public final class VoiceEngine: @unchecked Sendable {
         endTransmission()
     }
 
+    /// Starts only the speaker side (no microphone), e.g. to play a notification sound while disconnected.
+    public func startPlayback() throws {
+        engineLock.lock()
+        defer { engineLock.unlock() }
+        guard engines.isEmpty else { return }
+        startWarning = nil
+        do {
+            try startOutput(capture.withLock { $0.settings })
+        } catch {
+            stopEngines()
+            throw error
+        }
+    }
+
+    /// Whether playback is running (sounds and voices can be heard).
     public var isRunning: Bool {
         engineLock.lock()
         defer { engineLock.unlock() }
         return !engines.isEmpty
     }
 
+    /// Whether the microphone is running too.
+    public var isCapturing: Bool {
+        engineLock.lock()
+        defer { engineLock.unlock() }
+        return captureEngine != nil
+    }
+
     private func restart() {
-        guard isRunning else { return }
+        let (running, capturing) = (isRunning, isCapturing)
+        guard running else { return }
         stop()
         do {
-            try start()
+            if capturing { try start() } else { try startPlayback() }
         } catch {
             startWarning = "Audio failed to restart: \(error.localizedDescription)"
         }
     }
 
     private func stopEngines() {
-        for engine in engines {
-            engine.inputNode.removeTap(onBus: 0)
-            engine.stop()
-        }
+        // Only the capture engine has an input tap; touching `inputNode` elsewhere would open the microphone.
+        captureEngine?.inputNode.removeTap(onBus: 0)
+        captureEngine = nil
+        for engine in engines { engine.stop() }
         engines.removeAll()
     }
 
@@ -372,6 +399,7 @@ public final class VoiceEngine: @unchecked Sendable {
         try installCaptureTap(on: engine)
         try engine.start()
         engines.append(engine)
+        captureEngine = engine
     }
 
     /// One engine with Apple voice processing: echo cancellation needs input and output together.
@@ -392,6 +420,7 @@ public final class VoiceEngine: @unchecked Sendable {
         try installCaptureTap(on: engine)
         try engine.start()
         engines.append(engine)
+        captureEngine = engine
     }
 
     private func attachPlayback(to engine: AVAudioEngine) {

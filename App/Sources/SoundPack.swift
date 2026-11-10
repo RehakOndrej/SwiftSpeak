@@ -22,6 +22,8 @@ final class SoundPack {
     static let allNames: [String] = ClientEvent.allCases.map(\.soundName) + LocalEvent.allCases.map(\.rawValue)
 
     var isEnabled = true
+    /// Called after the pack had to start the speakers itself (audio was off), so they can be stopped later.
+    var onStartedPlayback: (() -> Void)?
     private let voice: VoiceEngine
     /// Decoded sounds by name; an empty array means "no file".
     private var cache: [String: [Float]] = [:]
@@ -34,9 +36,17 @@ final class SoundPack {
     func play(_ event: LocalEvent) { play(name: event.rawValue) }
 
     func play(name: String) {
-        guard isEnabled, voice.isRunning else { return }
+        guard isEnabled else { return }
         let samples = sound(named: name)
-        if !samples.isEmpty { voice.playEffect(samples) }
+        guard !samples.isEmpty else { return }
+        var started = false
+        if !voice.isRunning {
+            // Disconnected or not started yet: bring up the speakers only, never the microphone.
+            guard (try? voice.startPlayback()) != nil else { return }
+            started = true
+        }
+        voice.playEffect(samples)
+        if started { onStartedPlayback?() }
     }
 
     /// Forget decoded sounds, e.g. after files in the folder changed.

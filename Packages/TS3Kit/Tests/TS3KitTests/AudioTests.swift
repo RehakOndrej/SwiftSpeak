@@ -91,3 +91,25 @@ private func noise(_ count: Int, seed: UInt64 = 42) -> [Float] {
         #expect(back == s)
     }
 }
+
+@Suite struct VoiceEnginePlaybackTests {
+    /// Notification sounds must play without the microphone (e.g. while disconnected).
+    @Test(.enabled(if: AudioDevices.defaultOutput() != nil, "needs an output device"))
+    func playsEffectWithPlaybackOnly() async throws {
+        let engine = VoiceEngine()
+        var settings = AudioSettings()
+        settings.soundPackVolumeDB = -60 // inaudible
+        engine.apply(settings)
+        try engine.startPlayback()
+        #expect(engine.isRunning)
+        #expect(!engine.isCapturing)
+        _ = engine.takeOutputLevel()
+        engine.playEffect([Float](repeating: 0.5, count: 48_000 / 4))
+        #expect(engine.isPlayingEffects)
+        try await Task.sleep(for: .milliseconds(200))
+        let level = engine.takeOutputLevel()
+        engine.stop()
+        #expect(level > -90, "output level \(level) dBFS: the effect never reached the speakers")
+        #expect(!engine.isRunning)
+    }
+}
