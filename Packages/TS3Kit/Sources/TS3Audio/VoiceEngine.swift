@@ -123,9 +123,10 @@ extension AudioSettings: Codable {
 /// Microphone → processing → Opus frames, and Opus packets → per-speaker jitter buffers (which
 /// decode, reorder and conceal losses) → mixer → speakers.
 ///
-/// Capture and playback normally run on separate AVAudioEngines so each can use its own device.
-/// With echo cancellation on, both run on one engine with Apple's voice processing, which needs to
-/// hear what is played to remove it from the microphone.
+/// Playback normally runs on an AVAudioEngine and capture on a Core Audio unit of its own
+/// (`MicrophoneCapture`), so each can use its own device. With echo cancellation on, both run on one
+/// engine with Apple's voice processing, which needs to hear what is played to remove it from the
+/// microphone.
 public final class VoiceEngine: @unchecked Sendable {
     /// Called with (codec, encoded 20 ms frame); an empty frame marks the end of a transmission.
     public var onEncodedFrame: (@Sendable (UInt8, [UInt8]) -> Void)? {
@@ -218,8 +219,14 @@ public final class VoiceEngine: @unchecked Sendable {
     private let speakerGains = Mutex<[UInt16: Float]>([:])
     // Engines: only ever touched on `audioQueue`. With echo cancellation one engine does both jobs.
     private var outputEngine: AVAudioEngine?
-    /// Has the microphone tap; nil while only playback runs (e.g. for a notification sound).
+    /// The echo-cancelling engine (the same object as `outputEngine`) while it captures; otherwise nil.
     private var captureEngine: AVAudioEngine?
+    /// The microphone without echo cancellation; nil while only playback runs (e.g. for a
+    /// notification sound) or while `captureEngine` does the job.
+    private var captureUnit: MicrophoneCapture?
+    private var hasCapture: Bool { captureEngine != nil || captureUnit != nil }
+    /// Tells us when the system default microphone changes while we are following it.
+    private var defaultInputListener: AudioObjectPropertyListenerBlock?
     /// Every AVAudioEngine operation runs here, one at a time. Callers never wait on it: CoreAudio can
     /// stall for seconds (or longer) while a Bluetooth headset reconfigures, and that must never
     /// freeze the UI or tie up other threads.
@@ -384,7 +391,7 @@ public final class VoiceEngine: @unchecked Sendable {
     // MARK: Engine plumbing (audio queue only)
 
     private func startCaptureAndPlayback() throws {
-        guard captureEngine == nil else { return }
+        guard !hasCapture else { return }
         startWarning = nil
         let settings = capture.withLock { $0.settings }
         do {
@@ -426,7 +433,7 @@ public final class VoiceEngine: @unchecked Sendable {
     }
 
     private func restart() {
-        let wasRunning = outputEngine != nil, wasCapturing = captureEngine != nil
+        let wasRunning = outputEngine != nil, wasCapturing = hasCapture
         guard wasRunning else { return }
         stopAll()
         updateFlags()
@@ -439,7 +446,7 @@ public final class VoiceEngine: @unchecked Sendable {
 
 
     private func updateFlags() {
-        let flags = (running: outputEngine != nil, capturing: captureEngine != nil)
+        let flags = (running: outputEngine != nil, capturing: hasCapture)
         engineFlags.withLock { $0 = flags }
     }
 
@@ -449,6 +456,12 @@ public final class VoiceEngine: @unchecked Sendable {
     }
 
     private func stopCapture() {
+        if let unit = captureUnit {
+            unit.stop()
+            captureUnit = nil
+            followDefaultInput(false)
+            inputConverter.withLock { $0 = nil }
+        }
         guard let engine = captureEngine else { return }
         // Only this engine has an input tap; touching `inputNode` on others would open the microphone.
         engine.inputNode.removeTap(onBus: 0)
@@ -479,21 +492,37 @@ public final class VoiceEngine: @unchecked Sendable {
     }
 
     private func startInput(_ settings: AudioSettings) throws {
-        let engine = AVAudioEngine()
-        if let device = Self.inputDevice(for: settings) {
-            try setDevice(device, on: engine.inputNode)
-            try matchClientFormatToDevice(engine.inputNode)
+        // The chosen microphone, or whatever the system default is right now. Never through
+        // AVAudioEngine: its input node opens the system default first whatever we ask for.
+        guard let device = Self.inputDevice(for: settings) ?? AudioDevices.defaultInput() else {
+            throw NSError(domain: "TS3Audio", code: 1, userInfo: [NSLocalizedDescriptionKey: "No usable input device"])
         }
-        try installCaptureTap(on: engine)
-        do {
-            try engine.start()
-        } catch {
-            engine.inputNode.removeTap(onBus: 0)
-            throw error
+        inputConverter.withLock { $0 = nil }
+        let unit = try MicrophoneCapture(device: device) { [weak self] buffer in
+            self?.handleCaptured(buffer)
         }
-        captureEngine = engine
-        observe(engine, as: .capture)
+        try unit.start()
+        captureUnit = unit
+        followDefaultInput(settings.inputDeviceUID == nil)
         lastInput.withLock { $0 = Date() } // grace period before the silence check
+    }
+
+    /// While on "System default", reopen the microphone when the default changes.
+    private func followDefaultInput(_ follow: Bool) {
+        var address = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultInputDevice,
+                                                 mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+        let system = AudioObjectID(kAudioObjectSystemObject)
+        if let listener = defaultInputListener {
+            AudioObjectRemovePropertyListenerBlock(system, &address, audioQueue, listener)
+            defaultInputListener = nil
+        }
+        guard follow else { return }
+        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            self?.configurationChanged(.capture)
+        }
+        if AudioObjectAddPropertyListenerBlock(system, &address, audioQueue, listener) == noErr {
+            defaultInputListener = listener
+        }
     }
 
     /// One engine with Apple voice processing: echo cancellation needs input and output together.
@@ -588,7 +617,7 @@ public final class VoiceEngine: @unchecked Sendable {
         audioQueue.async { [weak self] in
             guard let self else { return }
             let outputStopped = self.outputEngine.map { !$0.isRunning } ?? false
-            let capturing = self.captureEngine != nil
+            let capturing = self.hasCapture
             let captureStopped = self.captureEngine.map { !$0.isRunning } ?? false
             let inputSilentFor = Date().timeIntervalSince(self.lastInput.withLock { $0 })
             if outputStopped { self.configurationChanged(.output, settleTime: 0.1) }
@@ -605,7 +634,7 @@ public final class VoiceEngine: @unchecked Sendable {
             defer { request.roles.removeAll() }
             return request.roles
         }
-        guard outputEngine != nil || captureEngine != nil, !roles.isEmpty else { return }
+        guard outputEngine != nil || hasCapture, !roles.isEmpty else { return }
         let now = Date()
         recentRebuilds = recentRebuilds.filter { now.timeIntervalSince($0) < 10 } + [now]
         guard recentRebuilds.count <= 6 else {
@@ -624,7 +653,7 @@ public final class VoiceEngine: @unchecked Sendable {
                     stopOutput()
                     try startOutput(settings)
                 }
-                if roles.contains(.capture), captureEngine != nil {
+                if roles.contains(.capture), hasCapture {
                     stopCapture()
                     try startInput(settings)
                 }
@@ -651,27 +680,6 @@ public final class VoiceEngine: @unchecked Sendable {
         guard settings.inputDeviceUID == nil, settings.avoidBluetoothMicrophone,
               let defaultInput = AudioDevices.defaultInput(), AudioDevices.isBluetooth(defaultInput) else { return nil }
         return AudioDevices.builtInInput()
-    }
-
-    /// After switching an input node to another device, AVAudioEngine keeps reporting the previous
-    /// device's format on the node's output side (e.g. AirPods' 24 kHz while the built-in mic runs at
-    /// 48 kHz) and `start()` fails with -10868 (format not supported). Give the unit's client side
-    /// the new device's sample rate and channel count.
-    private func matchClientFormatToDevice(_ node: AVAudioInputNode) throws {
-        guard let unit = node.audioUnit else { return }
-        let hardware = node.inputFormat(forBus: 0)
-        guard hardware.sampleRate > 0, hardware.channelCount > 0,
-              node.outputFormat(forBus: 0).sampleRate != hardware.sampleRate
-                || node.outputFormat(forBus: 0).channelCount != hardware.channelCount,
-              let client = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: hardware.sampleRate,
-                                         channels: hardware.channelCount, interleaved: false) else { return }
-        var description = client.streamDescription.pointee
-        let status = AudioUnitSetProperty(unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 1,
-                                          &description, UInt32(MemoryLayout<AudioStreamBasicDescription>.size))
-        if status != noErr {
-            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status),
-                          userInfo: [NSLocalizedDescriptionKey: "Could not use the selected microphone's format (\(status))"])
-        }
     }
 
     private func setDevice(_ device: AudioDeviceID, on node: AVAudioIONode) throws {

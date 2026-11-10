@@ -160,6 +160,36 @@ extension VoiceEnginePlaybackTests {
     }
 }
 
+@Suite struct VoiceEngineCaptureTests {
+    /// The microphone must deliver audio after `start()` and again after the engine is rebuilt
+    /// (as when a device changes), and starting must never hang.
+    @Test(.enabled(if: AudioDevices.defaultInput() != nil && AudioDevices.defaultOutput() != nil, "needs audio devices"),
+          .timeLimit(.minutes(1)))
+    func capturesAndSurvivesRebuild() async throws {
+        let engine = VoiceEngine()
+        let levels = Mutex(0)
+        engine.onInputLevel = { _, _ in levels.withLock { $0 += 1 } }
+        var settings = AudioSettings()
+        settings.soundPackVolumeDB = -60
+        engine.apply(settings)
+        try await engine.start()
+        #expect(engine.isRunning)
+        #expect(engine.isCapturing)
+        try await Task.sleep(for: .milliseconds(700))
+        let first = levels.withLock { $0 }
+        #expect(first > 0, "no microphone buffers arrived")
+
+        engine.configurationChanged(.capture, settleTime: 0.1)
+        try await Task.sleep(for: .milliseconds(1_000))
+        #expect(engine.isCapturing)
+        let second = levels.withLock { $0 }
+        #expect(second > first, "no microphone buffers after the rebuild")
+        engine.stop()
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(!engine.isCapturing)
+    }
+}
+
 @Suite struct VoiceEngineCallbackTests {
     /// Regression: each read of `onEncodedFrame` nested the stored closure one level deeper, and
     /// after ten minutes of microphone buffers calling it overflowed the stack (a crash, so this
