@@ -15,6 +15,7 @@ let package = Package(
     ],
     targets: [
         // Ed25519 group arithmetic (ref10 via orlp/ed25519, zlib licence) for the license key chain.
+        // Also the fixed-size modular squaring for the handshake puzzle (ts_modpow).
         .target(
             name: "CEd25519",
             exclude: ["LICENSE-ed25519.txt"]

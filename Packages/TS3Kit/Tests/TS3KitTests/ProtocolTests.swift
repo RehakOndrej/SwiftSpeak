@@ -87,6 +87,36 @@ private let licenseBlob = "AQA1hUFJiiSs0wFXkYuPUJVcDa6XCrZTcsvkB0Ffzz4CmwIITRXgC
         #expect(y.count == 64)
         #expect(Array(y.suffix(2)) == [0x01, 0x00])
     }
+
+    /// The fast path must agree with plain big-number arithmetic, including for x ≥ n and small n.
+    @Test func rsaPuzzleFastPathMatchesBigInt() throws {
+        var generator: UInt64 = 99
+        func bytes(_ count: Int) -> [UInt8] {
+            (0..<count).map { _ in
+                generator = generator &* 6364136223846793005 &+ 1442695040888963407
+                return UInt8(truncatingIfNeeded: generator >> 33)
+            }
+        }
+        for round in 0..<40 {
+            var n = bytes(64)
+            n[63] |= 1 // odd, as RSA moduli are
+            if round % 4 == 1 { n[0] = 0xFF; n[1] = 0xFF }                   // top bits set
+            if round % 4 == 2 { n.replaceSubrange(0..<40, with: [UInt8](repeating: 0, count: 40)) } // short modulus
+            var x = bytes(64)
+            if round % 4 == 3 { x = [UInt8](repeating: 0xFF, count: 64) }    // larger than n
+            let level = UInt32(round * 7)
+            #expect(try RSAPuzzle.solve(x: x, n: n, level: level) == RSAPuzzle.solveWithBigInt(x: x, n: n, level: level), "round \(round)")
+        }
+        // Even modulus: handled by the fallback.
+        let even = bytes(63) + [0x10]
+        #expect(try RSAPuzzle.solve(x: bytes(64), n: even, level: 5).count == 64)
+    }
+
+    @Test func rsaPuzzleAtTheUsualLevelIsQuick() throws {
+        let start = Date()
+        _ = try RSAPuzzle.solve(x: [UInt8](repeating: 0xAB, count: 64), n: [UInt8](repeating: 0xC7, count: 64), level: 10_000)
+        #expect(Date().timeIntervalSince(start) < 0.25)
+    }
 }
 
 @Suite struct CommandTests {

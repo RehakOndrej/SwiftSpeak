@@ -1,4 +1,5 @@
 import BigInt
+import CEd25519
 import Foundation
 
 /// Packet encryption keys after the handshake (ts3protocol.md 1.6 and 3.2.2.4).
@@ -48,7 +49,19 @@ struct SessionCrypto {
 enum RSAPuzzle {
     static func solve(x: [UInt8], n: [UInt8], level: UInt32) throws -> [UInt8] {
         guard level <= 10_000_000 else { throw TS3Error.protocolViolation("RSA puzzle level \(level) too high") }
+        // Fixed-size C arithmetic: the same loop with BigInt takes over a second in a debug build
+        // at the usual level of 10 000, and the whole connection waits for it.
+        if x.count == 64, n.count == 64 {
+            var y = [UInt8](repeating: 0, count: 64)
+            if ts_square_repeatedly_mod(x, n, level, &y) == 1 { return y }
+        }
+        return try solveWithBigInt(x: x, n: n, level: level)
+    }
+
+    /// For the moduli the fast path does not take (even ones; no real server sends those).
+    static func solveWithBigInt(x: [UInt8], n: [UInt8], level: UInt32) throws -> [UInt8] {
         let modulus = BigUInt(Data(n))
+        guard !modulus.isZero else { throw TS3Error.protocolViolation("RSA puzzle modulus is zero") }
         var y = BigUInt(Data(x)) % modulus
         for _ in 0..<level {
             y = (y * y) % modulus

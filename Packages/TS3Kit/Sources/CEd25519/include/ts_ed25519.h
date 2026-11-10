@@ -21,4 +21,7 @@ void ts_ed_sc_reduce32(unsigned char out[32], const unsigned char in[32]);
 /// out = in mod l, for a 64-byte little-endian input.
 void ts_ed_sc_reduce64(unsigned char out[32], const unsigned char in[64]);
 
+// Also part of this module: the handshake puzzle arithmetic.
+#include "ts_modpow.h"
+
 #endif
