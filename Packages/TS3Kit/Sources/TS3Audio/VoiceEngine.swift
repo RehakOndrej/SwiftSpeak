@@ -470,6 +470,7 @@ public final class VoiceEngine: @unchecked Sendable {
         let engine = AVAudioEngine()
         if let device = Self.inputDevice(for: settings) {
             try setDevice(device, on: engine.inputNode)
+            try matchClientFormatToDevice(engine.inputNode)
         }
         try installCaptureTap(on: engine)
         do {
@@ -638,6 +639,27 @@ public final class VoiceEngine: @unchecked Sendable {
         guard settings.inputDeviceUID == nil, settings.avoidBluetoothMicrophone,
               let defaultInput = AudioDevices.defaultInput(), AudioDevices.isBluetooth(defaultInput) else { return nil }
         return AudioDevices.builtInInput()
+    }
+
+    /// After switching an input node to another device, AVAudioEngine keeps reporting the previous
+    /// device's format on the node's output side (e.g. AirPods' 24 kHz while the built-in mic runs at
+    /// 48 kHz) and `start()` fails with -10868 (format not supported). Give the unit's client side
+    /// the new device's sample rate and channel count.
+    private func matchClientFormatToDevice(_ node: AVAudioInputNode) throws {
+        guard let unit = node.audioUnit else { return }
+        let hardware = node.inputFormat(forBus: 0)
+        guard hardware.sampleRate > 0, hardware.channelCount > 0,
+              node.outputFormat(forBus: 0).sampleRate != hardware.sampleRate
+                || node.outputFormat(forBus: 0).channelCount != hardware.channelCount,
+              let client = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: hardware.sampleRate,
+                                         channels: hardware.channelCount, interleaved: false) else { return }
+        var description = client.streamDescription.pointee
+        let status = AudioUnitSetProperty(unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 1,
+                                          &description, UInt32(MemoryLayout<AudioStreamBasicDescription>.size))
+        if status != noErr {
+            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status),
+                          userInfo: [NSLocalizedDescriptionKey: "Could not use the selected microphone's format (\(status))"])
+        }
     }
 
     private func setDevice(_ device: AudioDeviceID, on node: AVAudioIONode) throws {
