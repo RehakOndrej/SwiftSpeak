@@ -202,6 +202,8 @@ public final class VoiceEngine: @unchecked Sendable {
     /// Only touched from `receive` (the network queue), never from the render thread.
     private let decoders = Mutex<[UInt16: SpeakerDecoder]>([:])
     private let frameSink = Mutex<(@Sendable (UInt8, [UInt8]) -> Void)?>(nil)
+    /// Per-speaker volume set by the user (linear; 0 = muted locally). Missing = 1.
+    private let speakerGains = Mutex<[UInt16: Float]>([:])
     private var engines: [AVAudioEngine] = []
     private let engineLock = NSLock()
 
@@ -552,6 +554,8 @@ public final class VoiceEngine: @unchecked Sendable {
         guard codec == VoiceCodec.opusVoice.rawValue || codec == VoiceCodec.opusMusic.rawValue else { return }
         let (muted, leveling) = playback.withLock { ($0.muted, $0.leveling) }
         guard !muted else { return }
+        let speakerGain = speakerGains.withLock { $0[clientId] ?? 1 }
+        guard speakerGain > 0 else { return } // muted locally
 
         if data.isEmpty {
             playback.withLock { state in
@@ -574,6 +578,9 @@ public final class VoiceEngine: @unchecked Sendable {
                 Self.level(&pcm, gain: &gain)
                 decoders[clientId]!.levelingGain = gain
             }
+            if speakerGain != 1 {
+                for i in pcm.indices { pcm[i] *= speakerGain }
+            }
             return pcm
         }
         guard !pcm.isEmpty else { return }
@@ -592,6 +599,15 @@ public final class VoiceEngine: @unchecked Sendable {
             for (id, s) in state.streams where s.ended && s.available == 0 {
                 state.streams[id] = nil
             }
+        }
+    }
+
+    /// Local volume per client id (linear gain; 0 mutes that speaker only for us).
+    public func setSpeakerGains(_ gains: [UInt16: Float]) {
+        speakerGains.withLock { $0 = gains }
+        let muted = Set(gains.filter { $0.value == 0 }.keys)
+        if !muted.isEmpty {
+            playback.withLock { state in for id in muted { state.streams[id] = nil } }
         }
     }
 

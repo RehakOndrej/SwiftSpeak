@@ -52,6 +52,8 @@ public final class Connection: @unchecked Sendable {
     /// When set, voice packets go here (on the connection queue) instead of `events`.
     /// Arguments: talking client id, codec, Opus data (empty = end of stream), whisper.
     public var voiceHandler: (@Sendable (UInt16, UInt8, [UInt8], Bool) -> Void)?
+    /// Round-trip time of each answered ping, in seconds (called on the connection queue).
+    public var pingHandler: (@Sendable (TimeInterval) -> Void)?
 
     private let options: ConnectOptions
     private let queue = DispatchQueue(label: "ts3.connection")
@@ -91,6 +93,7 @@ public final class Connection: @unchecked Sendable {
     private var timer: DispatchSourceTimer?
     private var lastReceived = Date()
     private var lastPing = Date.distantPast
+    private var pingsInFlight: [UInt16: Date] = [:]
     private var clientInitCommandId: UInt16 = 0
 
     public init(options: ConnectOptions) {
@@ -240,6 +243,10 @@ public final class Connection: @unchecked Sendable {
         if phase == .connected || phase == .disconnecting {
             if now.timeIntervalSince(lastPing) >= 1 {
                 lastPing = now
+                pingsInFlight[outIds[Int(PacketType.ping.rawValue)]] = now
+                if pingsInFlight.count > 10 {
+                    pingsInFlight = pingsInFlight.filter { now.timeIntervalSince($0.value) < 10 }
+                }
                 var ping = Packet(packetId: 0, clientId: clientId, type: .ping, flags: [.unencrypted], payload: [])
                 transmit(&ping)
             }
@@ -493,6 +500,10 @@ public final class Connection: @unchecked Sendable {
             sendAck(for: .ping, id: id)
         case .pong:
             advanceIncoming(t, id: id, generation: generation, inWindow: inWindow)
+            // The pong carries the id of the ping it answers.
+            if packet.payload.count >= 2, let sent = pingsInFlight.removeValue(forKey: packet.payload.readU16(0)) {
+                pingHandler?(Date().timeIntervalSince(sent))
+            }
         case .voice, .voiceWhisper:
             advanceIncoming(t, id: id, generation: generation, inWindow: inWindow)
             let p = packet.payload

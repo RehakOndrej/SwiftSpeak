@@ -24,6 +24,12 @@ public final class TS3Client {
     public private(set) var talking: Set<UInt16> = []
     /// Whether the channel list has been fully received.
     public private(set) var isReady = false
+    /// Smoothed round-trip time to the server; nil until measured.
+    public private(set) var ping: Duration?
+    /// Whether this connection got as far as being accepted by the server.
+    public private(set) var wasConnected = false
+    /// Why the server removed us (`reasonid`: 5 kicked, 6 banned, 7/11 shutdown); nil otherwise.
+    public private(set) var removalReason: Int?
 
     /// Chat history per tab. The server tab also carries connection events.
     public private(set) var messages: [ChatTarget: [ChatMessage]] = [:]
@@ -40,6 +46,8 @@ public final class TS3Client {
     @ObservationIgnored public var onOwnChannelChanged: ((ChannelInfo) -> Void)?
     /// Called when the connection is gone.
     @ObservationIgnored public var onDisconnected: (() -> Void)?
+    /// A chat message or poke from someone else arrived: (message, tab it went to).
+    @ObservationIgnored public var onIncomingMessage: ((ChatMessage, ChatTarget) -> Void)?
 
     @ObservationIgnored private var connection: Connection?
     @ObservationIgnored private var eventTask: Task<Void, Never>?
@@ -116,6 +124,9 @@ public final class TS3Client {
         disconnectImmediately()
         status = .connecting
         isReady = false
+        ping = nil
+        wasConnected = false
+        removalReason = nil
         messages[.channel] = nil
         unread[.channel] = nil
         if case .client = activeChat { activeChat = .server }
@@ -128,6 +139,9 @@ public final class TS3Client {
         connection.voiceHandler = { clientId, codec, data, _ in
             lastVoice.map.withLock { $0[clientId] = data.isEmpty ? nil : Date() }
             sinkOwner.voiceSink?(clientId, codec, data)
+        }
+        connection.pingHandler = { [weak self] seconds in
+            Task { @MainActor in self?.updatePing(seconds) }
         }
         self.connection = connection
         eventTask = Task { [weak self] in
@@ -166,6 +180,39 @@ public final class TS3Client {
             $0.isAway = away
             $0.awayMessage = away ? message : ""
         }
+    }
+
+    public func setNickname(_ nickname: String) async throws {
+        let trimmed = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != ownClient?.nickname else { return }
+        try await request(Command("clientupdate", [("client_nickname", trimmed)]))
+    }
+
+    // MARK: - Moderation (the server decides whether we may)
+
+    /// Moves another client (or us) to a channel.
+    public func move(client: UInt16, to channel: UInt64, password: String = "") async throws {
+        var args: [(String, String?)] = [("clid", String(client)), ("cid", String(channel))]
+        if !password.isEmpty { args.append(("cpw", ts3HashPassword(password))) }
+        try await request(Command("clientmove", args))
+    }
+
+    public func poke(client: UInt16, message: String) async throws {
+        try await request(Command("clientpoke", [("clid", String(client)), ("msg", message)]))
+    }
+
+    public func kickFromChannel(client: UInt16, reason: String) async throws {
+        try await request(Command("clientkick", [("clid", String(client)), ("reasonid", "4"), ("reasonmsg", reason)]))
+    }
+
+    public func kickFromServer(client: UInt16, reason: String) async throws {
+        try await request(Command("clientkick", [("clid", String(client)), ("reasonid", "5"), ("reasonmsg", reason)]))
+    }
+
+    /// Bans a client; `duration` nil means permanently.
+    public func ban(client: UInt16, duration: Duration?, reason: String) async throws {
+        let seconds = duration.map { String($0.components.seconds) } ?? "0"
+        try await request(Command("banclient", [("clid", String(client)), ("time", seconds), ("banreason", reason)]))
     }
 
     /// Sends a chat message. The server echoes it back, which is what adds it to the history.
@@ -263,6 +310,7 @@ public final class TS3Client {
         case .connected(let id):
             ownClientId = id
             connectedAt = Date()
+            wasConnected = true
             status = .connected
         case .command(let command):
             handle(command)
@@ -395,12 +443,15 @@ public final class TS3Client {
                 let reason = e.int("reasonid") ?? 8
                 let message = e["reasonmsg"].flatMap { $0.isEmpty ? nil : $0 }
                 if id == ownClientId {
+                    removalReason = reason
                     switch reason {
                     case 5: event("You were kicked from the server\(by(e))\(suffix(message))", tone: .negative)
                     case 6: event("You were banned from the server\(by(e))\(suffix(message))", tone: .negative)
                     case 7, 11: event("The server shut down\(suffix(message))", tone: .negative)
                     default: event("Removed from the server\(suffix(message))", tone: .negative)
                     }
+                    // The server is done with us; close now instead of waiting for the timeout.
+                    connection?.disconnect(reason: "")
                     continue
                 }
                 requestedDetails.remove(id)
@@ -466,6 +517,7 @@ public final class TS3Client {
             var poke = ChatMessage(kind: .poke, sender: a["invokername"] ?? "?", text: a["msg"] ?? "")
             poke.tone = .negative
             add(poke, to: .server)
+            onIncomingMessage?(poke, .server)
         case "error":
             let a = c.first
             let id = a.int("id") ?? 0
@@ -499,10 +551,13 @@ public final class TS3Client {
             guard let other = clients[otherId] else { return }
             ensurePrivateChat(uid: other.uid, nickname: other.nickname, clientId: other.id)
             add(message, to: .client(uid: other.uid))
+            if !isOwn { onIncomingMessage?(message, .client(uid: other.uid)) }
         case 2:
             add(message, to: .channel)
+            if !isOwn { onIncomingMessage?(message, .channel) }
         default:
             add(message, to: .server)
+            if !isOwn { onIncomingMessage?(message, .server) }
         }
     }
 
@@ -571,6 +626,14 @@ public final class TS3Client {
     }
 
     // MARK: - Helpers
+
+    private func updatePing(_ seconds: TimeInterval) {
+        guard status == .connected else { return }
+        let previous = ping.map { Double($0.components.attoseconds) / 1e18 + Double($0.components.seconds) } ?? seconds
+        let smoothed = previous * 0.7 + seconds * 0.3
+        let rounded = Duration.milliseconds(Int((smoothed * 1000).rounded()))
+        if rounded != ping { ping = rounded }
+    }
 
     private func startTalkTimer() {
         talkTimer?.cancel()
