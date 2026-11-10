@@ -135,3 +135,26 @@ extension VoiceEnginePlaybackTests {
         #expect(level > -90, "second sound: output \(level) dBFS (before: \(quiet))")
     }
 }
+
+extension VoiceEnginePlaybackTests {
+    /// Regression: after a device reconfiguration (AirPods switching mode) playback stayed dead.
+    @Test(.enabled(if: AudioDevices.defaultOutput() != nil, "needs an output device"))
+    func playbackSurvivesConfigurationChange() async throws {
+        let engine = VoiceEngine()
+        var settings = AudioSettings()
+        settings.soundPackVolumeDB = -60
+        engine.apply(settings)
+        try engine.startPlayback()
+        engine.configurationChanged(.output)
+        engine.configurationChanged(.output) // bursts are coalesced
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(engine.isRunning)
+        #expect(!engine.isCapturing, "rebuilding playback must not open the microphone")
+        _ = engine.takeOutputLevel()
+        engine.playEffect([Float](repeating: 0.5, count: 24_000))
+        try await Task.sleep(for: .milliseconds(200))
+        let level = engine.takeOutputLevel()
+        engine.stop()
+        #expect(level > -90, "after rebuild: output \(level) dBFS")
+    }
+}

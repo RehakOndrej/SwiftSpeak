@@ -204,16 +204,24 @@ public final class VoiceEngine: @unchecked Sendable {
     private let frameSink = Mutex<(@Sendable (UInt8, [UInt8]) -> Void)?>(nil)
     /// Per-speaker volume set by the user (linear; 0 = muted locally). Missing = 1.
     private let speakerGains = Mutex<[UInt16: Float]>([:])
-    private var engines: [AVAudioEngine] = []
-    /// The engine with the microphone tap; nil while only playback runs (e.g. for a notification sound).
+    // Engines, guarded by `engineLock`. With echo cancellation one engine does both jobs.
+    private var outputEngine: AVAudioEngine?
+    /// Has the microphone tap; nil while only playback runs (e.g. for a notification sound).
     private var captureEngine: AVAudioEngine?
+    private let engineLock = NSLock()
+    /// What is running, readable without `engineLock` (which is held while engines restart).
+    private let engineFlags = Mutex((running: false, capturing: false))
+
     /// AVAudioEngine stops itself when its device is reconfigured (e.g. AirPods switching to headset
-    /// mode when the microphone opens). We watch for that and rebuild.
-    private var configurationObservers: [NSObjectProtocol] = []
-    private var rebuildPending = false
+    /// mode when the microphone opens). We watch each engine and rebuild only the one that changed.
+    enum EngineRole { case output, capture }
+    private var configurationObservers: [ObjectIdentifier: NSObjectProtocol] = [:]
+    private var pendingRebuild: Set<EngineRole> = []
     private var recentRebuilds: [Date] = []
     private let rebuildQueue = DispatchQueue(label: "ts3.audio.rebuild")
-    private let engineLock = NSLock()
+
+    /// Microphone → 48 kHz mono converter, made for the format the tap actually delivers.
+    private let inputConverter = Mutex<(format: AVAudioFormat, converter: AVAudioConverter)?>(nil)
 
     private let opusFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 48_000, channels: 1, interleaved: false)!
     private static let prebufferSamples = OpusConstants.frameSamples * 2   // 40 ms
@@ -311,24 +319,43 @@ public final class VoiceEngine: @unchecked Sendable {
         let settings = capture.withLock { $0.settings }
         do {
             if settings.echoCancellation {
-                stopEngines() // voice processing needs input and output on one engine
+                stopAll() // voice processing needs input and output on one engine
                 try startDuplex(settings)
             } else {
-                if engines.isEmpty { try startOutput(settings) }
+                if outputEngine == nil { try startOutput(settings) }
                 try startInput(settings)
             }
         } catch {
-            stopEngines()
+            stopAll()
+            updateFlags()
             throw error
         }
+        updateFlags()
         if capture.withLock({ $0.encoder == nil }) {
             setCodec(.opusVoice, quality: 6)
         }
     }
 
+    /// Starts only the speaker side (no microphone), e.g. to play a notification sound while disconnected.
+    public func startPlayback() throws {
+        engineLock.lock()
+        defer { engineLock.unlock() }
+        guard outputEngine == nil else { return }
+        startWarning = nil
+        do {
+            try startOutput(capture.withLock { $0.settings })
+        } catch {
+            stopAll()
+            updateFlags()
+            throw error
+        }
+        updateFlags()
+    }
+
     public func stop() {
         engineLock.lock()
-        stopEngines()
+        stopAll()
+        updateFlags()
         engineLock.unlock()
         playback.withLock { state in
             state.streams.removeAll()
@@ -340,36 +367,14 @@ public final class VoiceEngine: @unchecked Sendable {
         endTransmission()
     }
 
-    /// Starts only the speaker side (no microphone), e.g. to play a notification sound while disconnected.
-    public func startPlayback() throws {
-        engineLock.lock()
-        defer { engineLock.unlock() }
-        guard engines.isEmpty else { return }
-        startWarning = nil
-        do {
-            try startOutput(capture.withLock { $0.settings })
-        } catch {
-            stopEngines()
-            throw error
-        }
-    }
-
     /// Whether playback is running (sounds and voices can be heard).
-    public var isRunning: Bool {
-        engineLock.lock()
-        defer { engineLock.unlock() }
-        return !engines.isEmpty
-    }
+    public var isRunning: Bool { engineFlags.withLock { $0.running } }
 
     /// Whether the microphone is running too.
-    public var isCapturing: Bool {
-        engineLock.lock()
-        defer { engineLock.unlock() }
-        return captureEngine != nil
-    }
+    public var isCapturing: Bool { engineFlags.withLock { $0.capturing } }
 
     private func restart() {
-        let (running, capturing) = (isRunning, isCapturing)
+        let (running, capturing) = engineFlags.withLock { ($0.running, $0.capturing) }
         guard running else { return }
         stop()
         do {
@@ -379,63 +384,35 @@ public final class VoiceEngine: @unchecked Sendable {
         }
     }
 
-    private func stopEngines() {
-        // Only the capture engine has an input tap; touching `inputNode` elsewhere would open the microphone.
-        captureEngine?.inputNode.removeTap(onBus: 0)
+    // MARK: Engine plumbing (callers hold `engineLock`)
+
+    private func updateFlags() {
+        let flags = (running: outputEngine != nil, capturing: captureEngine != nil)
+        engineFlags.withLock { $0 = flags }
+    }
+
+    private func stopAll() {
+        stopCapture()
+        stopOutput()
+    }
+
+    private func stopCapture() {
+        guard let engine = captureEngine else { return }
+        // Only this engine has an input tap; touching `inputNode` on others would open the microphone.
+        engine.inputNode.removeTap(onBus: 0)
         captureEngine = nil
-        for observer in configurationObservers { NotificationCenter.default.removeObserver(observer) }
-        configurationObservers.removeAll()
-        for engine in engines { engine.stop() }
-        engines.removeAll()
+        if engine !== outputEngine { // a duplex engine is stopped with the output
+            unobserve(engine)
+            engine.stop()
+        }
+        inputConverter.withLock { $0 = nil }
     }
 
-    // MARK: - Device reconfiguration
-
-    /// Caller holds `engineLock`.
-    private func observeConfiguration(of engine: AVAudioEngine) {
-        let observer = NotificationCenter.default.addObserver(
-            forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil
-        ) { [weak self] _ in
-            self?.configurationChanged()
-        }
-        configurationObservers.append(observer)
-    }
-
-    private func configurationChanged() {
-        engineLock.lock()
-        defer { engineLock.unlock() }
-        guard !rebuildPending else { return }
-        rebuildPending = true
-        // Changes come in bursts (input and output, several properties); rebuild once they settle.
-        rebuildQueue.asyncAfter(deadline: .now() + 0.25) { [weak self] in self?.rebuildEngines() }
-    }
-
-    /// Restarts the engines in the same mode, keeping queued sounds and voice buffers.
-    private func rebuildEngines() {
-        engineLock.lock()
-        defer { engineLock.unlock() }
-        rebuildPending = false
-        guard !engines.isEmpty else { return }
-        let now = Date()
-        recentRebuilds = recentRebuilds.filter { now.timeIntervalSince($0) < 10 } + [now]
-        guard recentRebuilds.count <= 5 else {
-            startWarning = "The audio device keeps changing its configuration; audio may have stopped."
-            return
-        }
-        let capturing = captureEngine != nil
-        let settings = capture.withLock { $0.settings }
-        stopEngines()
-        do {
-            if capturing && settings.echoCancellation {
-                try startDuplex(settings)
-            } else {
-                try startOutput(settings)
-                if capturing { try startInput(settings) }
-            }
-        } catch {
-            stopEngines()
-            startWarning = "Audio stopped after the device changed: \(error.localizedDescription)"
-        }
+    private func stopOutput() {
+        guard let engine = outputEngine else { return }
+        unobserve(engine)
+        engine.stop()
+        outputEngine = nil
     }
 
     private func startOutput(_ settings: AudioSettings) throws {
@@ -445,8 +422,8 @@ public final class VoiceEngine: @unchecked Sendable {
         }
         attachPlayback(to: engine)
         try engine.start()
-        engines.append(engine)
-        observeConfiguration(of: engine)
+        outputEngine = engine
+        observe(engine, as: .output)
     }
 
     private func startInput(_ settings: AudioSettings) throws {
@@ -455,10 +432,14 @@ public final class VoiceEngine: @unchecked Sendable {
             try setDevice(device, on: engine.inputNode)
         }
         try installCaptureTap(on: engine)
-        try engine.start()
-        engines.append(engine)
-        observeConfiguration(of: engine)
+        do {
+            try engine.start()
+        } catch {
+            engine.inputNode.removeTap(onBus: 0)
+            throw error
+        }
         captureEngine = engine
+        observe(engine, as: .capture)
     }
 
     /// One engine with Apple voice processing: echo cancellation needs input and output together.
@@ -477,10 +458,15 @@ public final class VoiceEngine: @unchecked Sendable {
         }
         attachPlayback(to: engine)
         try installCaptureTap(on: engine)
-        try engine.start()
-        engines.append(engine)
-        observeConfiguration(of: engine)
+        do {
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            throw error
+        }
+        outputEngine = engine
         captureEngine = engine
+        observe(engine, as: .capture)
     }
 
     private func attachPlayback(to engine: AVAudioEngine) {
@@ -497,16 +483,79 @@ public final class VoiceEngine: @unchecked Sendable {
     }
 
     private func installCaptureTap(on engine: AVAudioEngine) throws {
-        let hwFormat = engine.inputNode.outputFormat(forBus: 0)
-        guard hwFormat.sampleRate > 0, hwFormat.channelCount > 0 else {
+        let hardware = engine.inputNode.inputFormat(forBus: 0)
+        guard hardware.sampleRate > 0, hardware.channelCount > 0 else {
             throw NSError(domain: "TS3Audio", code: 1, userInfo: [NSLocalizedDescriptionKey: "No usable input device"])
         }
-        guard let converter = AVAudioConverter(from: hwFormat, to: opusFormat) else {
-            throw NSError(domain: "TS3Audio", code: 2, userInfo: [NSLocalizedDescriptionKey: "Cannot convert from \(hwFormat)"])
+        inputConverter.withLock { $0 = nil }
+        // `format: nil` lets AVAudioEngine use its own current format. Passing one that is stale
+        // (it changes while e.g. AirPods switch mode) raises an Objective-C exception and aborts.
+        engine.inputNode.installTap(onBus: 0, bufferSize: 1024, format: nil) { [weak self] buffer, _ in
+            self?.handleCaptured(buffer)
         }
-        engine.inputNode.installTap(onBus: 0, bufferSize: 1024, format: hwFormat) { [weak self] buffer, _ in
-            self?.handleCaptured(buffer, converter: converter)
+    }
+
+    // MARK: Device reconfiguration
+
+    private func observe(_ engine: AVAudioEngine, as role: EngineRole) {
+        configurationObservers[ObjectIdentifier(engine)] = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil
+        ) { [weak self] _ in
+            self?.configurationChanged(role)
         }
+    }
+
+    private func unobserve(_ engine: AVAudioEngine) {
+        if let observer = configurationObservers.removeValue(forKey: ObjectIdentifier(engine)) {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    /// Internal (not private) so tests can simulate a device reconfiguration.
+    func configurationChanged(_ role: EngineRole) {
+        engineLock.lock()
+        let first = pendingRebuild.isEmpty
+        pendingRebuild.insert(role)
+        engineLock.unlock()
+        // Changes come in bursts; rebuild once they settle.
+        if first {
+            rebuildQueue.asyncAfter(deadline: .now() + 0.3) { [weak self] in self?.rebuildChangedEngines() }
+        }
+    }
+
+    /// Restarts only the engines whose device changed, keeping queued sounds and voice buffers.
+    /// Restarting playback alone never reopens the microphone, so it can't set off another change.
+    private func rebuildChangedEngines() {
+        engineLock.lock()
+        defer { engineLock.unlock() }
+        let roles = pendingRebuild
+        pendingRebuild.removeAll()
+        guard outputEngine != nil || captureEngine != nil else { return }
+        let now = Date()
+        recentRebuilds = recentRebuilds.filter { now.timeIntervalSince($0) < 10 } + [now]
+        guard recentRebuilds.count <= 6 else {
+            startWarning = "The audio device keeps changing its configuration; audio may have stopped."
+            return
+        }
+        let settings = capture.withLock { $0.settings }
+        do {
+            if let engine = captureEngine, engine === outputEngine {
+                stopAll()
+                try startDuplex(settings)
+            } else {
+                if roles.contains(.output), outputEngine != nil {
+                    stopOutput()
+                    try startOutput(settings)
+                }
+                if roles.contains(.capture), captureEngine != nil {
+                    stopCapture()
+                    try startInput(settings)
+                }
+            }
+        } catch {
+            startWarning = "Audio stopped after the device changed: \(error.localizedDescription)"
+        }
+        updateFlags()
     }
 
     private func setDevice(_ device: AudioDeviceID, on node: AVAudioIONode) throws {
@@ -520,23 +569,8 @@ public final class VoiceEngine: @unchecked Sendable {
 
     // MARK: - Capture
 
-    private func handleCaptured(_ buffer: AVAudioPCMBuffer, converter: AVAudioConverter) {
-        let ratio = opusFormat.sampleRate / buffer.format.sampleRate
-        let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 32
-        guard let converted = AVAudioPCMBuffer(pcmFormat: opusFormat, frameCapacity: capacity) else { return }
-        nonisolated(unsafe) var supplied = false
-        var error: NSError?
-        converter.convert(to: converted, error: &error) { _, status in
-            if supplied {
-                status.pointee = .noDataNow
-                return nil
-            }
-            supplied = true
-            status.pointee = .haveData
-            return buffer
-        }
-        guard error == nil, let data = converted.floatChannelData?[0] else { return }
-        let samples = Array(UnsafeBufferPointer(start: data, count: Int(converted.frameLength)))
+    private func handleCaptured(_ buffer: AVAudioPCMBuffer) {
+        guard let samples = convertToOpusFormat(buffer), !samples.isEmpty else { return }
 
         var frames: [[UInt8]] = []
         var monitor: [Float] = []
@@ -621,6 +655,34 @@ public final class VoiceEngine: @unchecked Sendable {
         }
         if let transmitChange {
             transmittingChanged(transmitChange, settings: settings)
+        }
+    }
+
+    /// Converts a microphone buffer to 48 kHz mono, (re)creating the converter when the format changes.
+    private func convertToOpusFormat(_ buffer: AVAudioPCMBuffer) -> [Float]? {
+        let opusFormat = self.opusFormat
+        return inputConverter.withLock { state -> [Float]? in
+            if state == nil || state!.format != buffer.format {
+                guard let converter = AVAudioConverter(from: buffer.format, to: opusFormat) else { return nil }
+                state = (buffer.format, converter)
+            }
+            let converter = state!.converter
+            let ratio = opusFormat.sampleRate / buffer.format.sampleRate
+            let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 32
+            guard let converted = AVAudioPCMBuffer(pcmFormat: opusFormat, frameCapacity: capacity) else { return nil }
+            nonisolated(unsafe) var supplied = false
+            var error: NSError?
+            converter.convert(to: converted, error: &error) { _, status in
+                if supplied {
+                    status.pointee = .noDataNow
+                    return nil
+                }
+                supplied = true
+                status.pointee = .haveData
+                return buffer
+            }
+            guard error == nil, let data = converted.floatChannelData?[0] else { return nil }
+            return Array(UnsafeBufferPointer(start: data, count: Int(converted.frameLength)))
         }
     }
 
