@@ -133,11 +133,15 @@ final class AppModel {
                 self?.client.setSelfTalking(transmitting)
             }
         }
-        // Meters for the audio panel; levels drop to silence while audio is off.
+        // Meters for the audio panel (levels drop to silence while audio is off), plus a health
+        // check every 2 s that revives audio a device change killed.
         Task { [weak self] in
+            var tick = 0
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(100))
                 guard let self else { return }
+                tick += 1
+                if tick % 20 == 0 { self.checkAudioHealth() }
                 let output = self.voice.isRunning ? self.voice.takeOutputLevel() : -100
                 if abs(output - self.outputLevel) > 0.5 { self.outputLevel = output }
                 if !self.voice.isCapturing {
@@ -326,17 +330,43 @@ final class AppModel {
         }
     }
 
-    private func startAudio() async {
-        guard await AVCaptureDevice.requestAccess(for: .audio) else {
-            audioError = "Microphone access is denied. Allow it in System Settings → Privacy & Security → Microphone."
-            do { try voice.start() } catch { audioError = error.localizedDescription }
-            return
+    @ObservationIgnored private var audioStarting = false
+    @ObservationIgnored private var shownEngineWarning: String?
+
+    private func checkAudioHealth() {
+        voice.checkHealth()
+        // Connected but the microphone isn't running (it failed to start or died): start it again.
+        if client.status == .connected, !voice.isCapturing, !audioStarting {
+            Task { await startAudio() }
         }
-        guard !voice.isCapturing else { return }
-        do {
-            try voice.start()
-            audioError = voice.startWarning
-        } catch {
+        // Problems found by the engine in the background show up like other audio errors.
+        let warning = voice.startWarning
+        if warning != shownEngineWarning {
+            if warning != nil || audioError == shownEngineWarning { audioError = warning }
+            shownEngineWarning = warning
+        }
+    }
+
+    private func startAudio() async {
+        let allowed = await AVCaptureDevice.requestAccess(for: .audio)
+        guard !voice.isCapturing, !audioStarting else { return }
+        audioStarting = true
+        defer { audioStarting = false }
+        // Starting engines can take a second or more (Bluetooth headsets switch mode): keep it off the UI thread.
+        let voice = self.voice
+        let result = await Task.detached { () -> Result<String?, any Error> in
+            do {
+                try voice.start()
+                return .success(voice.startWarning)
+            } catch {
+                return .failure(error)
+            }
+        }.value
+        switch result {
+        case .success(let warning):
+            audioError = allowed ? warning
+                : "Microphone access is denied. Allow it in System Settings → Privacy & Security → Microphone."
+        case .failure(let error):
             audioError = "Audio failed to start: \(error.localizedDescription)"
         }
     }

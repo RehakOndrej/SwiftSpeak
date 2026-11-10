@@ -169,6 +169,8 @@ struct ServerTreeView: View {
 private struct ChannelRow: View {
     let channel: ChannelInfo
     let isCurrent: Bool
+    /// `.increased` on a selected (accent-filled) row, where accent-coloured icons would vanish.
+    @Environment(\.backgroundProminence) private var prominence
 
     var body: some View {
         if let spacer = SpacerName(channel.name) {
@@ -176,7 +178,7 @@ private struct ChannelRow: View {
         } else {
             HStack(spacing: 6) {
                 Image(systemName: isCurrent ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right")
-                    .foregroundStyle(isCurrent ? Color.accentColor : .secondary)
+                    .foregroundStyle(iconStyle)
                 Text(channel.name)
                     .fontWeight(isCurrent ? .semibold : .regular)
                     .lineLimit(1)
@@ -237,6 +239,7 @@ private struct ClientRow: View {
     let isSelf: Bool
     let isTalking: Bool
     var mutedLocally = false
+    @Environment(\.backgroundProminence) private var prominence
 
     var body: some View {
         HStack(spacing: 6) {
@@ -269,11 +272,13 @@ private struct ClientRow: View {
         return isTalking ? "circle.fill" : "circle"
     }
 
-    private var statusColor: Color {
-        if client.isAway { return .indigo }
-        if client.outputMuted || client.inputMuted { return .red }
-        if !client.outputHardware || !client.inputHardware { return .secondary }
-        return isTalking ? .green : .secondary
+    /// Hierarchical styles (not `Color.secondary`) so icons turn light on a selected row;
+    /// indigo would disappear into the selection, so it becomes primary there.
+    private var statusColor: AnyShapeStyle {
+        if client.isAway { return prominence == .increased ? AnyShapeStyle(.primary) : AnyShapeStyle(Color.indigo) }
+        if client.outputMuted || client.inputMuted { return AnyShapeStyle(Color.red) }
+        if isTalking { return AnyShapeStyle(Color.green) }
+        return AnyShapeStyle(.secondary)
     }
 
     private var help: String {
@@ -282,5 +287,13 @@ private struct ClientRow: View {
         if client.inputMuted { parts.append("Microphone muted") }
         if client.outputMuted { parts.append("Speakers muted") }
         return parts.isEmpty ? client.nickname : parts.joined(separator: " · ")
+    }
+}
+
+extension ChannelRow {
+    /// Accent for your channel, except on a selected row (accent background) where it would vanish.
+    fileprivate var iconStyle: AnyShapeStyle {
+        guard isCurrent else { return AnyShapeStyle(.secondary) }
+        return prominence == .increased ? AnyShapeStyle(.primary) : AnyShapeStyle(Color.accentColor)
     }
 }

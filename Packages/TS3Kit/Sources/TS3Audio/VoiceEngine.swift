@@ -130,7 +130,11 @@ public final class VoiceEngine: @unchecked Sendable {
     /// True while we are sending voice.
     public var onTransmittingChanged: (@Sendable (Bool) -> Void)?
     /// Non-fatal notes from starting audio, e.g. a device that could not be selected.
-    public private(set) var startWarning: String?
+    public private(set) var startWarning: String? {
+        get { warning.withLock { $0 } }
+        set { warning.withLock { $0 = newValue } }
+    }
+    private let warning = Mutex<String?>(nil)
 
     private struct CaptureState {
         var settings = AudioSettings()
@@ -216,8 +220,11 @@ public final class VoiceEngine: @unchecked Sendable {
     /// mode when the microphone opens). We watch each engine and rebuild only the one that changed.
     enum EngineRole { case output, capture }
     private var configurationObservers: [ObjectIdentifier: NSObjectProtocol] = [:]
-    private var pendingRebuild: Set<EngineRole> = []
+    /// Roles waiting for a rebuild, and a generation so only the last change of a burst triggers it.
+    private let rebuildRequest = Mutex((roles: Set<EngineRole>(), generation: 0))
     private var recentRebuilds: [Date] = []
+    /// When the microphone last delivered audio (to notice a capture engine that died silently).
+    private let lastInput = Mutex(Date.distantPast)
     private let rebuildQueue = DispatchQueue(label: "ts3.audio.rebuild")
 
     /// Microphone → 48 kHz mono converter, made for the format the tap actually delivers.
@@ -248,7 +255,8 @@ public final class VoiceEngine: @unchecked Sendable {
             state.otherMicClicks = settings.otherMicClicks
             state.comfortNoiseAmplitude = settings.comfortNoise ? Self.gain(settings.comfortNoiseDB) : 0
         }
-        if restartNeeded { restart() }
+        // Restarting engines is slow (seconds with Bluetooth); never do it on the caller's (UI) thread.
+        if restartNeeded { rebuildQueue.async { [weak self] in self?.restart() } }
     }
 
     /// Codec and quality of the channel we are in; voice must be encoded with it.
@@ -440,6 +448,7 @@ public final class VoiceEngine: @unchecked Sendable {
         }
         captureEngine = engine
         observe(engine, as: .capture)
+        lastInput.withLock { $0 = Date() } // grace period before the silence check
     }
 
     /// One engine with Apple voice processing: echo cancellation needs input and output together.
@@ -467,6 +476,7 @@ public final class VoiceEngine: @unchecked Sendable {
         outputEngine = engine
         captureEngine = engine
         observe(engine, as: .capture)
+        lastInput.withLock { $0 = Date() }
     }
 
     private func attachPlayback(to engine: AVAudioEngine) {
@@ -512,14 +522,36 @@ public final class VoiceEngine: @unchecked Sendable {
     }
 
     /// Internal (not private) so tests can simulate a device reconfiguration.
-    func configurationChanged(_ role: EngineRole) {
-        engineLock.lock()
-        let first = pendingRebuild.isEmpty
-        pendingRebuild.insert(role)
-        engineLock.unlock()
-        // Changes come in bursts; rebuild once they settle.
-        if first {
-            rebuildQueue.asyncAfter(deadline: .now() + 0.3) { [weak self] in self?.rebuildChangedEngines() }
+    func configurationChanged(_ role: EngineRole, settleTime: TimeInterval = 0.8) {
+        // Bluetooth headsets reconfigure in several steps; rebuilding mid-switch reopens the
+        // microphone and starts another switch. Wait until no change has come for `settleTime`.
+        let generation = rebuildRequest.withLock { request -> Int in
+            request.roles.insert(role)
+            request.generation += 1
+            return request.generation
+        }
+        rebuildQueue.asyncAfter(deadline: .now() + settleTime) { [weak self] in
+            guard let self, self.rebuildRequest.withLock({ $0.generation }) == generation else { return }
+            self.rebuildChangedEngines()
+        }
+    }
+
+    /// Self-healing, called every couple of seconds: rebuilds an engine that has stopped, or a capture
+    /// engine that delivers no buffers at all (a working one always does, even while muted).
+    /// Never blocks the caller.
+    public func checkHealth() {
+        rebuildQueue.async { [weak self] in
+            guard let self else { return }
+            self.engineLock.lock()
+            let outputStopped = self.outputEngine.map { !$0.isRunning } ?? false
+            let capturing = self.captureEngine != nil
+            let captureStopped = self.captureEngine.map { !$0.isRunning } ?? false
+            self.engineLock.unlock()
+            let inputSilentFor = Date().timeIntervalSince(self.lastInput.withLock { $0 })
+            if outputStopped { self.configurationChanged(.output, settleTime: 0.1) }
+            if capturing && (captureStopped || inputSilentFor > 3) {
+                self.configurationChanged(.capture, settleTime: 0.1)
+            }
         }
     }
 
@@ -528,13 +560,17 @@ public final class VoiceEngine: @unchecked Sendable {
     private func rebuildChangedEngines() {
         engineLock.lock()
         defer { engineLock.unlock() }
-        let roles = pendingRebuild
-        pendingRebuild.removeAll()
-        guard outputEngine != nil || captureEngine != nil else { return }
+        let roles = rebuildRequest.withLock { request -> Set<EngineRole> in
+            defer { request.roles.removeAll() }
+            return request.roles
+        }
+        guard outputEngine != nil || captureEngine != nil, !roles.isEmpty else { return }
         let now = Date()
         recentRebuilds = recentRebuilds.filter { now.timeIntervalSince($0) < 10 } + [now]
         guard recentRebuilds.count <= 6 else {
-            startWarning = "The audio device keeps changing its configuration; audio may have stopped."
+            // Don't give up for good: try once more when things have calmed down.
+            startWarning = "The audio device keeps changing; retrying…"
+            for role in roles { configurationChanged(role, settleTime: 5) }
             return
         }
         let settings = capture.withLock { $0.settings }
@@ -552,6 +588,7 @@ public final class VoiceEngine: @unchecked Sendable {
                     try startInput(settings)
                 }
             }
+            startWarning = nil
         } catch {
             startWarning = "Audio stopped after the device changed: \(error.localizedDescription)"
         }
@@ -570,6 +607,7 @@ public final class VoiceEngine: @unchecked Sendable {
     // MARK: - Capture
 
     private func handleCaptured(_ buffer: AVAudioPCMBuffer) {
+        lastInput.withLock { $0 = Date() }
         guard let samples = convertToOpusFormat(buffer), !samples.isEmpty else { return }
 
         var frames: [[UInt8]] = []

@@ -147,7 +147,7 @@ extension VoiceEnginePlaybackTests {
         try engine.startPlayback()
         engine.configurationChanged(.output)
         engine.configurationChanged(.output) // bursts are coalesced
-        try await Task.sleep(for: .milliseconds(700))
+        try await Task.sleep(for: .milliseconds(1_400)) // settle time 0.8 s + rebuild
         #expect(engine.isRunning)
         #expect(!engine.isCapturing, "rebuilding playback must not open the microphone")
         _ = engine.takeOutputLevel()

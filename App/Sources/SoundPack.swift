@@ -39,14 +39,19 @@ final class SoundPack {
         guard isEnabled else { return }
         let samples = sound(named: name)
         guard !samples.isEmpty else { return }
-        var started = false
-        if !voice.isRunning {
-            // Disconnected or not started yet: bring up the speakers only, never the microphone.
-            guard (try? voice.startPlayback()) != nil else { return }
-            started = true
+        if voice.isRunning {
+            voice.playEffect(samples)
+            return
         }
-        voice.playEffect(samples)
-        if started { onStartedPlayback?() }
+        // Disconnected or not started yet: bring up the speakers only (never the microphone),
+        // off the UI thread because starting an engine can take a while.
+        let voice = self.voice
+        Task {
+            let started = await Task.detached { (try? voice.startPlayback()) != nil }.value
+            guard started else { return }
+            voice.playEffect(samples)
+            onStartedPlayback?()
+        }
     }
 
     /// Forget decoded sounds, e.g. after files in the folder changed.
