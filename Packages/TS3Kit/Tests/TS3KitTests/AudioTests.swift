@@ -113,3 +113,25 @@ private func noise(_ count: Int, seed: UInt64 = 42) -> [Float] {
         #expect(!engine.isRunning)
     }
 }
+
+extension VoiceEnginePlaybackTests {
+    /// Regression: only the first sound of a session was heard.
+    @Test(.enabled(if: AudioDevices.defaultOutput() != nil, "needs an output device"))
+    func playsSecondEffectAfterFirstFinished() async throws {
+        let engine = VoiceEngine()
+        var settings = AudioSettings()
+        settings.soundPackVolumeDB = -60
+        engine.apply(settings)
+        try engine.startPlayback()
+        engine.playEffect([Float](repeating: 0.5, count: 4_800)) // 100 ms
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(!engine.isPlayingEffects)
+        _ = engine.takeOutputLevel()
+        let quiet = engine.takeOutputLevel()
+        engine.playEffect([Float](repeating: 0.5, count: 24_000))
+        try await Task.sleep(for: .milliseconds(200))
+        let level = engine.takeOutputLevel()
+        engine.stop()
+        #expect(level > -90, "second sound: output \(level) dBFS (before: \(quiet))")
+    }
+}

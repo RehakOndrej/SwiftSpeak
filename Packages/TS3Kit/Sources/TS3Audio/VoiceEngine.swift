@@ -207,6 +207,12 @@ public final class VoiceEngine: @unchecked Sendable {
     private var engines: [AVAudioEngine] = []
     /// The engine with the microphone tap; nil while only playback runs (e.g. for a notification sound).
     private var captureEngine: AVAudioEngine?
+    /// AVAudioEngine stops itself when its device is reconfigured (e.g. AirPods switching to headset
+    /// mode when the microphone opens). We watch for that and rebuild.
+    private var configurationObservers: [NSObjectProtocol] = []
+    private var rebuildPending = false
+    private var recentRebuilds: [Date] = []
+    private let rebuildQueue = DispatchQueue(label: "ts3.audio.rebuild")
     private let engineLock = NSLock()
 
     private let opusFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 48_000, channels: 1, interleaved: false)!
@@ -377,8 +383,59 @@ public final class VoiceEngine: @unchecked Sendable {
         // Only the capture engine has an input tap; touching `inputNode` elsewhere would open the microphone.
         captureEngine?.inputNode.removeTap(onBus: 0)
         captureEngine = nil
+        for observer in configurationObservers { NotificationCenter.default.removeObserver(observer) }
+        configurationObservers.removeAll()
         for engine in engines { engine.stop() }
         engines.removeAll()
+    }
+
+    // MARK: - Device reconfiguration
+
+    /// Caller holds `engineLock`.
+    private func observeConfiguration(of engine: AVAudioEngine) {
+        let observer = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil
+        ) { [weak self] _ in
+            self?.configurationChanged()
+        }
+        configurationObservers.append(observer)
+    }
+
+    private func configurationChanged() {
+        engineLock.lock()
+        defer { engineLock.unlock() }
+        guard !rebuildPending else { return }
+        rebuildPending = true
+        // Changes come in bursts (input and output, several properties); rebuild once they settle.
+        rebuildQueue.asyncAfter(deadline: .now() + 0.25) { [weak self] in self?.rebuildEngines() }
+    }
+
+    /// Restarts the engines in the same mode, keeping queued sounds and voice buffers.
+    private func rebuildEngines() {
+        engineLock.lock()
+        defer { engineLock.unlock() }
+        rebuildPending = false
+        guard !engines.isEmpty else { return }
+        let now = Date()
+        recentRebuilds = recentRebuilds.filter { now.timeIntervalSince($0) < 10 } + [now]
+        guard recentRebuilds.count <= 5 else {
+            startWarning = "The audio device keeps changing its configuration; audio may have stopped."
+            return
+        }
+        let capturing = captureEngine != nil
+        let settings = capture.withLock { $0.settings }
+        stopEngines()
+        do {
+            if capturing && settings.echoCancellation {
+                try startDuplex(settings)
+            } else {
+                try startOutput(settings)
+                if capturing { try startInput(settings) }
+            }
+        } catch {
+            stopEngines()
+            startWarning = "Audio stopped after the device changed: \(error.localizedDescription)"
+        }
     }
 
     private func startOutput(_ settings: AudioSettings) throws {
@@ -389,6 +446,7 @@ public final class VoiceEngine: @unchecked Sendable {
         attachPlayback(to: engine)
         try engine.start()
         engines.append(engine)
+        observeConfiguration(of: engine)
     }
 
     private func startInput(_ settings: AudioSettings) throws {
@@ -399,6 +457,7 @@ public final class VoiceEngine: @unchecked Sendable {
         try installCaptureTap(on: engine)
         try engine.start()
         engines.append(engine)
+        observeConfiguration(of: engine)
         captureEngine = engine
     }
 
@@ -420,6 +479,7 @@ public final class VoiceEngine: @unchecked Sendable {
         try installCaptureTap(on: engine)
         try engine.start()
         engines.append(engine)
+        observeConfiguration(of: engine)
         captureEngine = engine
     }
 
