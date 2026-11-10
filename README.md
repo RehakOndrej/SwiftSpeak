@@ -3,7 +3,7 @@
 A personal macOS (27+) TeamSpeak 3 client in SwiftUI, implemented from the protocol notes in
 [ReSpeak/tsdeclarations](https://github.com/ReSpeak/tsdeclarations) (`ts3protocol.md`, `Messages.toml`, `Book.toml`).
 
-**Features:** connect · channel tree with `[Group]` tags · channel/client/server info panel · server, channel and private chat tabs · join channel · capture settings (push to talk with any key/mouse button, voice activation, noise removal, typing attenuation, echo cancellation, ducking) · playback settings (voice and sound volume, voice leveling, mic clicks, comfort noise) · away / mic mute / speaker mute · Opus voice.
+**Features:** connect · channel tree with `[Group]` tags · channel/client/server info panel · server, channel and private chat tabs · join channel · capture settings (push to talk with any key/mouse button, voice activation, noise removal, typing attenuation, echo cancellation, ducking) · playback settings (voice and sound volume, voice leveling, mic clicks, comfort noise) · away (mutes the mic) with away message / mic mute / speaker mute · bookmarks (⌘1–⌘9) · auto-reconnect to the last channel · notifications and Dock badge for private messages and pokes · per-user volume and local mute · global shortcuts · nickname change · ping · poke, move (drag and drop), kick and ban · Opus voice.
 
 ## Build and run
 

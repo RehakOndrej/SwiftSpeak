@@ -33,6 +33,12 @@ struct MainView: View {
         .sheet(isPresented: $model.showConnectSheet) {
             ConnectView()
         }
+        .sheet(item: $model.sheet) { sheet in
+            switch sheet {
+            case .profile: ProfileSheet()
+            case .moderation(let action, let clientId): ModerationSheet(action: action, clientId: clientId)
+            }
+        }
         .onAppear {
             if model.client.status == .disconnected { model.showConnectSheet = true }
         }
@@ -53,14 +59,27 @@ struct MainView: View {
             ContentUnavailableView {
                 Label("Not connected", systemImage: "antenna.radiowaves.left.and.right.slash")
             } description: {
-                if case .failed(let message) = model.client.status {
-                    Text(message)
-                } else {
-                    Text("Connect to a TeamSpeak 3 server to see its channels.")
+                VStack(spacing: 6) {
+                    if case .failed(let message) = model.client.status {
+                        Text(message)
+                    } else if model.reconnect == nil {
+                        Text("Connect to a TeamSpeak 3 server to see its channels.")
+                    }
+                    if let pending = model.reconnect {
+                        ReconnectCountdown(pending: pending)
+                    }
                 }
             } actions: {
-                Button("Connect…") { model.showConnectSheet = true }
-                    .buttonStyle(.borderedProminent)
+                if model.reconnect != nil {
+                    HStack {
+                        Button("Reconnect Now") { model.reconnectNow() }
+                            .buttonStyle(.borderedProminent)
+                        Button("Cancel") { model.cancelReconnect() }
+                    }
+                } else {
+                    Button("Connect…") { model.showConnectSheet = true }
+                        .buttonStyle(.borderedProminent)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -117,7 +136,17 @@ private struct StatusBar: View {
                 .frame(width: 8, height: 8)
             Text(text)
                 .lineLimit(1)
+            if let pending = model.reconnect {
+                ReconnectCountdown(pending: pending)
+            }
             Spacer()
+            if model.client.status == .connected, let ping = model.client.ping {
+                let ms = Int(ping.components.seconds * 1000 + ping.components.attoseconds / 1_000_000_000_000_000)
+                Text("\(ms) ms")
+                    .monospacedDigit()
+                    .foregroundStyle(ms < 100 ? Color.secondary : (ms < 250 ? Color.orange : Color.red))
+                    .help("Round-trip time to the server")
+            }
             if let me = model.client.ownClient {
                 Text("Connected as \(me.nickname)")
                     .lineLimit(1)
@@ -132,11 +161,12 @@ private struct StatusBar: View {
     }
 
     private var color: Color {
+        if model.reconnect != nil { return .yellow }
         switch model.client.status {
-        case .connected: .green
-        case .connecting: .yellow
-        case .disconnected: .gray
-        case .failed: .red
+        case .connected: return .green
+        case .connecting: return .yellow
+        case .disconnected: return .gray
+        case .failed: return .red
         }
     }
 
@@ -163,6 +193,19 @@ private struct ToolbarToggleLabel: View {
             Image(systemName: systemImage)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 22)
+        }
+    }
+}
+
+/// "Reconnecting in 8 s (attempt 3)…", ticking.
+private struct ReconnectCountdown: View {
+    let pending: AppModel.PendingReconnect
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let seconds = max(0, Int(pending.at.timeIntervalSince(context.date).rounded(.up)))
+            Text(pending.attempt > 1 ? "Reconnecting in \(seconds) s (attempt \(pending.attempt))…" : "Reconnecting in \(seconds) s…")
+                .monospacedDigit()
         }
     }
 }

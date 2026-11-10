@@ -10,6 +10,7 @@ struct SettingsView: View {
         TabView {
             Tab("Capture", systemImage: "mic") { CaptureSettingsView() }
             Tab("Playback", systemImage: "speaker.wave.2") { PlaybackSettingsView() }
+            Tab("Shortcuts", systemImage: "keyboard") { ShortcutSettingsView() }
             Tab("Identity", systemImage: "person.badge.key") { IdentitySettingsView() }
         }
         .frame(width: 560)
@@ -53,7 +54,10 @@ private struct CaptureSettingsView: View {
                 .labelsHidden()
 
                 if settings.activation == .pushToTalk {
-                    LabeledContent("Hotkey") { HotkeyRecorder(hotkey: $model.hotkey) }
+                    LabeledContent("Hotkey") {
+                        HotkeyRecorder(hotkey: Binding(get: { model.hotkey }, set: { if let key = $0 { model.hotkey = key } }),
+                                       canClear: false)
+                    }
                     Toggle("Release delay", isOn: $model.audioSettings.pushToTalkReleaseDelayEnabled)
                     if settings.pushToTalkReleaseDelayEnabled {
                         LabeledContent("Delay") {
@@ -146,7 +150,7 @@ private struct AccessibilityNote: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Label("Push to talk only works while TS3 Client is in front. Allow Accessibility access to use it from other apps.",
+            Label("Keyboard hotkeys only work while TS3 Client is in front. Allow Accessibility access to use them from other apps.",
                   systemImage: "exclamationmark.triangle.fill")
                 .font(.callout)
                 .foregroundStyle(.orange)
@@ -159,7 +163,8 @@ private struct AccessibilityNote: View {
 /// Click, then press a key (with modifiers), modifiers alone, or an extra mouse button.
 private struct HotkeyRecorder: View {
     @Environment(AppModel.self) private var model
-    @Binding var hotkey: Hotkey
+    @Binding var hotkey: Hotkey?
+    var canClear = true
     @State private var recording = false
     @State private var monitor: Any?
     @State private var peakModifiers: NSEvent.ModifierFlags = []
@@ -167,11 +172,19 @@ private struct HotkeyRecorder: View {
     var body: some View {
         HStack {
             Button(action: { recording ? stop() : start() }) {
-                Text(recording ? "Press keys or a mouse button…" : hotkey.display)
+                Text(recording ? "Press keys or a mouse button…" : (hotkey?.display ?? "Not set"))
                     .frame(minWidth: 180)
             }
             if recording {
                 Button("Cancel", action: stop)
+            } else if canClear && hotkey != nil {
+                Button {
+                    hotkey = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help("Remove shortcut")
             }
         }
         .onDisappear(perform: stop)
@@ -221,6 +234,34 @@ private struct HotkeyRecorder: View {
         default:
             return false
         }
+    }
+}
+
+// MARK: - Shortcuts
+
+private struct ShortcutSettingsView: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        @Bindable var model = model
+        Form {
+            Section {
+                ForEach(Shortcuts.Action.allCases, id: \.self) { action in
+                    LabeledContent(action.title) {
+                        HotkeyRecorder(hotkey: $model.shortcuts[dynamicMember: action.keyPath])
+                    }
+                }
+            } footer: {
+                Text("These work in any app once TS3 Client has Accessibility access; extra mouse buttons work without it. Push to talk is set in Capture.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if !model.accessibilityTrusted {
+                Section { AccessibilityNote() }
+            }
+        }
+        .formStyle(.grouped)
+        .frame(height: 300)
     }
 }
 

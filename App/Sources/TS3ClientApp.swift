@@ -21,7 +21,22 @@ struct TS3ClientApp: App {
                     .keyboardShortcut("k")
                 Button("Disconnect") { model.disconnect() }
                     .keyboardShortcut("d", modifiers: [.command, .shift])
-                    .disabled(model.client.status != .connected)
+                    .disabled(model.client.status != .connected && model.client.status != .connecting && model.reconnect == nil)
+                Menu("Bookmarks") {
+                    ForEach(Array(model.bookmarks.enumerated()), id: \.element.id) { index, bookmark in
+                        if index < 9 {
+                            Button(bookmark.displayName) { model.connect(bookmark) }
+                                .keyboardShortcut(KeyEquivalent(Character(String(index + 1))), modifiers: .command)
+                        } else {
+                            Button(bookmark.displayName) { model.connect(bookmark) }
+                        }
+                    }
+                    if !model.bookmarks.isEmpty { Divider() }
+                    Button("Manage Bookmarks…") { model.showConnectSheet = true }
+                }
+                Divider()
+                Button("Nickname & Away Message…") { model.sheet = .profile }
+                    .keyboardShortcut("n", modifiers: [.command, .shift])
                 Divider()
                 Button(model.micMuted ? "Unmute Microphone" : "Mute Microphone") { model.toggleMic() }
                     .keyboardShortcut("m", modifiers: [.command, .shift])

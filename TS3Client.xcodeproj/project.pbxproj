@@ -7,13 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		03FFAA3DE7F9498B510BF31A /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A68A1C503C8674A0E0B3FEB /* Preferences.swift */; };
 		268960AFEDC48FC99B6D488F /* Storage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6146D4FD2328C55D28B5424 /* Storage.swift */; };
 		2768DCEAD5F4D1905CC14D3B /* Hotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C562BF2C264F7C6B67F2A3A /* Hotkey.swift */; };
 		29EEDC1F652D746C2B63D63C /* SplitPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CE826017304E2595558BA76 /* SplitPane.swift */; };
 		3F1C380CE7F5398276D1867F /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6097460256FDFAED872C0B2 /* MainView.swift */; };
 		497E5AAC0DA825B74C9D04BD /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74F0AB2719FFDA89E8EFB870 /* AppModel.swift */; };
+		582E7307B0B767CC290F7265 /* Notifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E80D7E6B7D4F63D73E3B01 /* Notifier.swift */; };
 		59B8BB6178F848BD40E1A5E5 /* TS3Kit in Frameworks */ = {isa = PBXBuildFile; productRef = FD765E88A642049D4C725AB5 /* TS3Kit */; };
 		67110B4BDE7F0C9947612B7A /* ConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86B214DF87D7821164958832 /* ConnectView.swift */; };
+		6918D038052A94499377DBB8 /* Sheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E0CCD7B6527C6FD16C43E6 /* Sheets.swift */; };
 		744546A40DF6196AE7929DDD /* TS3Audio in Frameworks */ = {isa = PBXBuildFile; productRef = 33DB5C2A3CD13E01C241B35E /* TS3Audio */; };
 		8200AF041AE7ADD961F7A3DF /* InfoPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400AACEA84DDED2D574B9B70 /* InfoPanel.swift */; };
 		842C4214D741666C1AD9054C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02EB635DFDE570D1953ECDE8 /* SettingsView.swift */; };
@@ -27,7 +30,9 @@
 /* Begin PBXFileReference section */
 		02EB635DFDE570D1953ECDE8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		18909594808F78DA14EF8974 /* TS3Client.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TS3Client.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A68A1C503C8674A0E0B3FEB /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		1CE826017304E2595558BA76 /* SplitPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitPane.swift; sourceTree = "<group>"; };
+		27E0CCD7B6527C6FD16C43E6 /* Sheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sheets.swift; sourceTree = "<group>"; };
 		3D2F6FFDE374361960677C02 /* ChatPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPanel.swift; sourceTree = "<group>"; };
 		400AACEA84DDED2D574B9B70 /* InfoPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoPanel.swift; sourceTree = "<group>"; };
 		66EC84B75080967077906130 /* TS3Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TS3Kit; path = Packages/TS3Kit; sourceTree = SOURCE_ROOT; };
@@ -36,6 +41,7 @@
 		86B214DF87D7821164958832 /* ConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectView.swift; sourceTree = "<group>"; };
 		8C562BF2C264F7C6B67F2A3A /* Hotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hotkey.swift; sourceTree = "<group>"; };
 		C17A610F311FB34B2FB28295 /* TS3ClientApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TS3ClientApp.swift; sourceTree = "<group>"; };
+		D2E80D7E6B7D4F63D73E3B01 /* Notifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifier.swift; sourceTree = "<group>"; };
 		D3933394BF6ADA29885CA66F /* BBCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BBCode.swift; sourceTree = "<group>"; };
 		D52737BD53F46C701B9AA133 /* ServerTreeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerTreeView.swift; sourceTree = "<group>"; };
 		F6097460256FDFAED872C0B2 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
@@ -90,8 +96,11 @@
 				8C562BF2C264F7C6B67F2A3A /* Hotkey.swift */,
 				400AACEA84DDED2D574B9B70 /* InfoPanel.swift */,
 				F6097460256FDFAED872C0B2 /* MainView.swift */,
+				D2E80D7E6B7D4F63D73E3B01 /* Notifier.swift */,
+				1A68A1C503C8674A0E0B3FEB /* Preferences.swift */,
 				D52737BD53F46C701B9AA133 /* ServerTreeView.swift */,
 				02EB635DFDE570D1953ECDE8 /* SettingsView.swift */,
+				27E0CCD7B6527C6FD16C43E6 /* Sheets.swift */,
 				1CE826017304E2595558BA76 /* SplitPane.swift */,
 				F6146D4FD2328C55D28B5424 /* Storage.swift */,
 				C17A610F311FB34B2FB28295 /* TS3ClientApp.swift */,
@@ -180,8 +189,11 @@
 				2768DCEAD5F4D1905CC14D3B /* Hotkey.swift in Sources */,
 				8200AF041AE7ADD961F7A3DF /* InfoPanel.swift in Sources */,
 				3F1C380CE7F5398276D1867F /* MainView.swift in Sources */,
+				582E7307B0B767CC290F7265 /* Notifier.swift in Sources */,
+				03FFAA3DE7F9498B510BF31A /* Preferences.swift in Sources */,
 				CE40D2721F5EBB2C6056DE16 /* ServerTreeView.swift in Sources */,
 				842C4214D741666C1AD9054C /* SettingsView.swift in Sources */,
+				6918D038052A94499377DBB8 /* Sheets.swift in Sources */,
 				29EEDC1F652D746C2B63D63C /* SplitPane.swift in Sources */,
 				268960AFEDC48FC99B6D488F /* Storage.swift in Sources */,
 				89BCDEE4B644B058C433341B /* TS3ClientApp.swift in Sources */,

@@ -85,11 +85,38 @@ enum Storage {
     }
 
     static var pushToTalkHotkey: Hotkey {
-        get {
-            UserDefaults.standard.data(forKey: "pushToTalkHotkey")
-                .flatMap { try? JSONDecoder().decode(Hotkey.self, from: $0) } ?? .default
-        }
-        set { UserDefaults.standard.set(try? JSONEncoder().encode(newValue), forKey: "pushToTalkHotkey") }
+        get { load("pushToTalkHotkey") ?? .default }
+        set { save(newValue, "pushToTalkHotkey") }
+    }
+
+    static var shortcuts: Shortcuts {
+        get { load("shortcuts") ?? Shortcuts() }
+        set { save(newValue, "shortcuts") }
+    }
+
+    /// Saved servers. Their passwords live with the other secrets, keyed by host and port.
+    static var bookmarks: [Bookmark] {
+        get { load("bookmarks") ?? [] }
+        set { save(newValue, "bookmarks") }
+    }
+
+    /// Local volume and mute per client unique id.
+    static var userAudio: [String: UserAudioPreference] {
+        get { load("userAudio") ?? [:] }
+        set { save(newValue, "userAudio") }
+    }
+
+    static var awayMessage: String {
+        get { UserDefaults.standard.string(forKey: "awayMessage") ?? "" }
+        set { UserDefaults.standard.set(newValue, forKey: "awayMessage") }
+    }
+
+    private static func load<T: Decodable>(_ key: String) -> T? {
+        UserDefaults.standard.data(forKey: key).flatMap { try? JSONDecoder().decode(T.self, from: $0) }
+    }
+
+    private static func save<T: Encodable>(_ value: T, _ key: String) {
+        UserDefaults.standard.set(try? JSONEncoder().encode(value), forKey: key)
     }
 
     struct LastServer: Codable {

@@ -37,7 +37,7 @@ struct ServerTreeView: View {
                 }
             case .client(let id):
                 if let client = model.client.clients[id], id != model.client.ownClientId {
-                    Button("Send Private Message") { model.openPrivateChat(with: client) }
+                    clientMenu(client)
                 }
             default:
                 EmptyView()
@@ -59,6 +59,37 @@ struct ServerTreeView: View {
         } message: {
             Text("\(passwordPrompt?.name ?? "This channel") needs a password.")
         }
+    }
+
+    @ViewBuilder private func clientMenu(_ client: ClientInfo) -> some View {
+        let muted = model.audioPreference(for: client.uid).mutedLocally
+        Button("Send Private Message") { model.openPrivateChat(with: client) }
+        Button("Poke…") { model.sheet = .moderation(.poke, clientId: client.id) }
+        Divider()
+        Button(muted ? "Unmute Locally" : "Mute Locally") { model.toggleLocalMute(for: client.uid) }
+        Divider()
+        if let ownChannel = model.client.ownChannel, client.channelId != ownChannel.id {
+            Button("Move to Your Channel") { model.move(clientId: client.id, to: ownChannel) }
+        }
+        Button("Kick from Channel…") { model.sheet = .moderation(.kickFromChannel, clientId: client.id) }
+        Button("Kick from Server…") { model.sheet = .moderation(.kickFromServer, clientId: client.id) }
+        Button("Ban…") { model.sheet = .moderation(.ban, clientId: client.id) }
+    }
+
+    /// Drag payload for a client row.
+    private static let dragPrefix = "ts3-client:"
+
+    private func drop(_ items: [String], on channel: ChannelInfo) -> Bool {
+        guard !channel.isSpacer,
+              let item = items.first, item.hasPrefix(Self.dragPrefix),
+              let id = UInt16(item.dropFirst(Self.dragPrefix.count)),
+              let client = model.client.clients[id], client.channelId != channel.id else { return false }
+        if id == model.client.ownClientId {
+            join(channel) // asks for the password if needed
+        } else {
+            model.move(clientId: id, to: channel)
+        }
+        return true
     }
 
     private var rows: [Row] {
@@ -102,12 +133,17 @@ struct ServerTreeView: View {
                 ChannelRow(channel: channel, isCurrent: channel.id == model.client.ownClient?.channelId)
             }
             .padding(.leading, CGFloat(depth - 1) * 16)
+            .dropDestination(for: String.self) { items, _ in drop(items, on: channel) }
         case .client(let client, let depth):
             ClientRow(client: client,
                       name: model.client.displayName(client),
                       isSelf: client.id == model.client.ownClientId,
-                      isTalking: model.client.talking.contains(client.id))
+                      isTalking: model.client.talking.contains(client.id),
+                      mutedLocally: model.audioPreference(for: client.uid).mutedLocally)
                 .padding(.leading, CGFloat(depth - 1) * 16 + 14)
+                .draggable(Self.dragPrefix + String(client.id)) {
+                    Label(client.nickname, systemImage: "person.fill").padding(4)
+                }
         }
     }
 
@@ -200,6 +236,7 @@ private struct ClientRow: View {
     let name: String
     let isSelf: Bool
     let isTalking: Bool
+    var mutedLocally = false
 
     var body: some View {
         HStack(spacing: 6) {
@@ -215,6 +252,9 @@ private struct ClientRow: View {
             }
             if client.isRecording {
                 Image(systemName: "record.circle").foregroundStyle(.red).help("Recording")
+            }
+            if mutedLocally {
+                Image(systemName: "speaker.slash").foregroundStyle(.secondary).help("Muted locally (only for you)")
             }
         }
         .help(help)

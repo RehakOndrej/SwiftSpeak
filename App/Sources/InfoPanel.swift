@@ -170,6 +170,9 @@ private struct ClientInfoView: View {
         if !client.description.isEmpty {
             RichSection(title: "Description", source: client.description)
         }
+        if !isSelf {
+            LocalAudioSection(uid: client.uid)
+        }
         Section("Unique ID") {
             Text(client.uid).font(.callout.monospaced())
         }
@@ -199,5 +202,35 @@ private struct ConnectedDuration: View {
                 .monospacedDigit()
         }
         .help(since.formatted(date: .abbreviated, time: .shortened))
+    }
+}
+
+/// This person's volume for you only, remembered across sessions.
+private struct LocalAudioSection: View {
+    @Environment(AppModel.self) private var model
+    let uid: String
+
+    var body: some View {
+        let pref = model.audioPreference(for: uid)
+        Section("Only for you") {
+            LabeledContent("Volume") {
+                HStack {
+                    Slider(value: Binding(get: { pref.volumeDB }, set: { model.setLocalVolume($0.rounded(), for: uid) }),
+                           in: -30...20)
+                        .disabled(pref.mutedLocally)
+                    Text(pref.volumeDB == 0 ? "0 dB" : String(format: "%+.0f dB", pref.volumeDB))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(width: 52, alignment: .trailing)
+                }
+            }
+            Toggle("Mute locally", isOn: Binding(get: { pref.mutedLocally }, set: { _ in model.toggleLocalMute(for: uid) }))
+            if !pref.isDefault {
+                Button("Reset") {
+                    model.setLocalVolume(0, for: uid)
+                    if model.audioPreference(for: uid).mutedLocally { model.toggleLocalMute(for: uid) }
+                }
+            }
+        }
     }
 }
