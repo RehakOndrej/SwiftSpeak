@@ -174,6 +174,7 @@ final class AppModel {
             }
         }
         soundPack.isEnabled = soundsEnabled
+        soundPack.preload()
         // A sound that had to start the speakers on its own: stop them again once it's done.
         soundPack.onStartedPlayback = { [weak self] in self?.stopAudioWhenIdle() }
         client.onEvent = { [weak self] event in

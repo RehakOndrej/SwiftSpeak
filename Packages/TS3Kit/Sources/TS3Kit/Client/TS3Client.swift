@@ -30,6 +30,8 @@ public final class TS3Client {
     public private(set) var wasConnected = false
     /// Why the server removed us (`reasonid`: 5 kicked, 6 banned, 7/11 shutdown); nil otherwise.
     public private(set) var removalReason: Int?
+    /// The "disconnected" event was already sent when the user chose to leave.
+    @ObservationIgnored private var announcedDisconnect = false
 
     /// Chat history per tab. The server tab also carries connection events.
     public private(set) var messages: [ChatTarget: [ChatMessage]] = [:]
@@ -130,6 +132,7 @@ public final class TS3Client {
         ping = nil
         wasConnected = false
         removalReason = nil
+        announcedDisconnect = false
         messages[.channel] = nil
         unread[.channel] = nil
         if case .client = activeChat { activeChat = .server }
@@ -159,6 +162,11 @@ public final class TS3Client {
     public func disconnect(reason: String = "leaving") {
         guard let connection else { return }
         event("Disconnecting…")
+        // Leaving on purpose: say so now rather than after the server has confirmed it.
+        if status == .connected && !announcedDisconnect {
+            announcedDisconnect = true
+            onEvent?(.disconnected)
+        }
         connection.disconnect(reason: reason)
     }
 
@@ -328,7 +336,7 @@ public final class TS3Client {
                 status = .disconnected
                 self.event("Disconnected")
                 // A kick or ban already had its own sound.
-                if wasConnected && removalReason == nil { onEvent?(.disconnected) }
+                if wasConnected && removalReason == nil && !announcedDisconnect { onEvent?(.disconnected) }
             }
             resetState()
         }
@@ -459,7 +467,7 @@ public final class TS3Client {
                     switch reason {
                     case 5: onEvent?(.youWereKickedFromServer)
                     case 6: onEvent?(.youWereBanned)
-                    default: onEvent?(.disconnected)
+                    default: if !announcedDisconnect { onEvent?(.disconnected) }
                     }
                     switch reason {
                     case 5: event("You were kicked from the server\(by(e))\(suffix(message))", tone: .negative)

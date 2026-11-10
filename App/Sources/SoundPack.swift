@@ -17,8 +17,8 @@ final class SoundPack {
         case awayActivated = "away_activated", awayDeactivated = "away_deactivated"
     }
 
-    static let folder = URL.applicationSupportDirectory.appending(path: "TS3 Client/Sounds", directoryHint: .isDirectory)
-    static let fileExtensions = ["mp3", "wav", "m4a", "aiff", "aif", "caf"]
+    nonisolated static let folder = URL.applicationSupportDirectory.appending(path: "TS3 Client/Sounds", directoryHint: .isDirectory)
+    nonisolated static let fileExtensions = ["mp3", "wav", "m4a", "aiff", "aif", "caf"]
     static let allNames: [String] = ClientEvent.allCases.map(\.soundName) + LocalEvent.allCases.map(\.rawValue)
 
     var isEnabled = true
@@ -39,18 +39,31 @@ final class SoundPack {
         guard isEnabled else { return }
         let samples = sound(named: name)
         guard !samples.isEmpty else { return }
-        if voice.isRunning {
-            voice.playEffect(samples)
-            return
-        }
+        // Queued first: if audio is just starting (as when connecting), the sound plays the moment
+        // the speakers run, without waiting for the microphone to open as well.
+        voice.playEffect(samples)
+        guard !voice.isRunning else { return }
         // Disconnected or not started yet: bring up the speakers only (never the microphone).
         // The engine starts on its own queue, so this doesn't block the UI.
         let voice = self.voice
         Task {
             guard (try? await voice.startPlayback()) != nil else { return }
-            voice.playEffect(samples)
             onStartedPlayback?()
         }
+    }
+
+    /// Decodes every sound of the pack in the background, so the first one to play (usually
+    /// "connected") doesn't wait for its file to be read and converted.
+    func preload() {
+        let files = Self.allNames.compactMap { name in Self.url(for: name).map { (name, $0) } }
+        Task.detached(priority: .utility) { [weak self] in
+            let decoded = files.map { ($0.0, Self.decode($0.1) ?? []) }
+            await self?.store(decoded)
+        }
+    }
+
+    private func store(_ decoded: [(String, [Float])]) {
+        for (name, samples) in decoded where cache[name] == nil { cache[name] = samples }
     }
 
     /// Forget decoded sounds, e.g. after files in the folder changed.
@@ -89,7 +102,7 @@ final class SoundPack {
         return samples
     }
 
-    private static func url(for name: String) -> URL? {
+    private nonisolated static func url(for name: String) -> URL? {
         let fm = FileManager.default
         for ext in fileExtensions {
             let url = folder.appending(path: "\(name).\(ext)")
@@ -103,7 +116,7 @@ final class SoundPack {
     }
 
     /// Any audio file → 48 kHz mono float, the voice engine's format.
-    private static func decode(_ url: URL) -> [Float]? {
+    private nonisolated static func decode(_ url: URL) -> [Float]? {
         guard let file = try? AVAudioFile(forReading: url) else { return nil }
         let inFormat = file.processingFormat
         guard file.length > 0,

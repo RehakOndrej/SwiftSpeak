@@ -309,7 +309,8 @@ public final class VoiceEngine: @unchecked Sendable {
         }
     }
 
-    /// Plays a short sound (48 kHz mono) at the sound pack volume.
+    /// Plays a short sound (48 kHz mono) at the sound pack volume. While the speakers are still
+    /// starting, the sound waits and plays as soon as they run.
     public func playEffect(_ samples: [Float]) {
         playback.withLock { state in
             state.effects.removeAll { $0.index >= $0.samples.count }
@@ -392,14 +393,22 @@ public final class VoiceEngine: @unchecked Sendable {
                 try startDuplex(settings)
             } else {
                 if outputEngine == nil { try startOutput(settings) }
+                // Sounds can play from here on; the microphone may take a while longer to open.
+                updateFlags()
                 try startInput(settings)
             }
         } catch {
             stopAll()
             updateFlags()
+            dropQueuedEffects()
             throw error
         }
         updateFlags()
+    }
+
+    /// Sounds queued for an engine that then failed to start must not play at some later start.
+    private func dropQueuedEffects() {
+        playback.withLock { $0.effects.removeAll() }
     }
 
     private func startPlaybackOnly() throws {
@@ -410,6 +419,7 @@ public final class VoiceEngine: @unchecked Sendable {
         } catch {
             stopAll()
             updateFlags()
+            dropQueuedEffects()
             throw error
         }
         updateFlags()
