@@ -6,7 +6,7 @@ import TS3Kit
 /// Spoken notifications: one sound file per event, played at the sound pack volume on the playback device.
 ///
 /// Files are looked up by name (`connected.mp3`, `user_switched_tocurrentchannel.wav`, …) first in
-/// `~/Library/Application Support/TS3 Client/Sounds`, then in the app's bundled `Sounds` folder.
+/// `~/Library/Application Support/TS3 Client/Sounds`, then in the app bundle (the default pack).
 /// Events without a file are silent.
 @MainActor
 final class SoundPack {
@@ -81,8 +81,9 @@ final class SoundPack {
             let url = folder.appending(path: "\(name).\(ext)")
             if fm.fileExists(atPath: url.path(percentEncoded: false)) { return url }
         }
+        // The bundled default pack (App/Resources/Sounds) sits directly in the app's resources.
         for ext in fileExtensions {
-            if let url = Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Sounds") { return url }
+            if let url = Bundle.main.url(forResource: name, withExtension: ext) { return url }
         }
         return nil
     }

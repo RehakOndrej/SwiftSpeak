@@ -17,6 +17,9 @@ targets:
     platform: macOS
     sources:
       - path: App/Sources
+      # Default sound pack, copied into the app's resources.
+      - path: App/Resources/Sounds
+        buildPhase: resources
     info:
       path: App/Info.plist
       properties:
