@@ -352,21 +352,12 @@ final class AppModel {
         guard !voice.isCapturing, !audioStarting else { return }
         audioStarting = true
         defer { audioStarting = false }
-        // Starting engines can take a second or more (Bluetooth headsets switch mode): keep it off the UI thread.
-        let voice = self.voice
-        let result = await Task.detached { () -> Result<String?, any Error> in
-            do {
-                try voice.start()
-                return .success(voice.startWarning)
-            } catch {
-                return .failure(error)
-            }
-        }.value
-        switch result {
-        case .success(let warning):
-            audioError = allowed ? warning
+        // The engine starts on its own audio queue; awaiting it doesn't block the UI.
+        do {
+            try await voice.start()
+            audioError = allowed ? voice.startWarning
                 : "Microphone access is denied. Allow it in System Settings → Privacy & Security → Microphone."
-        case .failure(let error):
+        } catch {
             audioError = "Audio failed to start: \(error.localizedDescription)"
         }
     }

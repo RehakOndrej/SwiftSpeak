@@ -100,7 +100,7 @@ private func noise(_ count: Int, seed: UInt64 = 42) -> [Float] {
         var settings = AudioSettings()
         settings.soundPackVolumeDB = -60 // inaudible
         engine.apply(settings)
-        try engine.startPlayback()
+        try await engine.startPlayback()
         #expect(engine.isRunning)
         #expect(!engine.isCapturing)
         _ = engine.takeOutputLevel()
@@ -122,7 +122,7 @@ extension VoiceEnginePlaybackTests {
         var settings = AudioSettings()
         settings.soundPackVolumeDB = -60
         engine.apply(settings)
-        try engine.startPlayback()
+        try await engine.startPlayback()
         engine.playEffect([Float](repeating: 0.5, count: 4_800)) // 100 ms
         try await Task.sleep(for: .milliseconds(400))
         #expect(!engine.isPlayingEffects)
@@ -144,7 +144,7 @@ extension VoiceEnginePlaybackTests {
         var settings = AudioSettings()
         settings.soundPackVolumeDB = -60
         engine.apply(settings)
-        try engine.startPlayback()
+        try await engine.startPlayback()
         engine.configurationChanged(.output)
         engine.configurationChanged(.output) // bursts are coalesced
         try await Task.sleep(for: .milliseconds(1_400)) // settle time 0.8 s + rebuild
@@ -156,5 +156,22 @@ extension VoiceEnginePlaybackTests {
         let level = engine.takeOutputLevel()
         engine.stop()
         #expect(level > -90, "after rebuild: output \(level) dBFS")
+    }
+}
+
+@Suite struct BluetoothMicrophoneTests {
+    @Test func substitutesBuiltInMicOnlyForBluetoothSystemDefault() {
+        var settings = AudioSettings()
+        settings.inputDeviceUID = "chosen-explicitly"
+        #expect(VoiceEngine.substitutedInput(for: settings) == nil)
+        settings.inputDeviceUID = nil
+        settings.avoidBluetoothMicrophone = false
+        #expect(VoiceEngine.substitutedInput(for: settings) == nil)
+        settings.avoidBluetoothMicrophone = true
+        let defaultIsBluetooth = AudioDevices.defaultInput().map(AudioDevices.isBluetooth) ?? false
+        let expected = defaultIsBluetooth ? AudioDevices.builtInInput() : nil
+        let actual = VoiceEngine.substitutedInput(for: settings)
+        print("default input is Bluetooth: \(defaultIsBluetooth); substitute: \(actual?.name ?? "none")")
+        #expect(actual == expected)
     }
 }

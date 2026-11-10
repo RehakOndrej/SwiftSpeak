@@ -28,6 +28,8 @@ struct SettingsView: View {
 private struct CaptureSettingsView: View {
     @Environment(AppModel.self) private var model
     @State private var inputs: [AudioDevice] = []
+    /// Looked up when the tab opens, not on every redraw (device queries can stall while a headset reconfigures).
+    @State private var substitute: AudioDevice?
 
     var body: some View {
         @Bindable var model = model
@@ -40,6 +42,12 @@ private struct CaptureSettingsView: View {
                 Picker("Capture device", selection: $model.audioSettings.inputDeviceUID) {
                     Text("System default").tag(String?.none)
                     ForEach(inputs) { Text($0.name).tag(Optional($0.uid)) }
+                }
+                if settings.inputDeviceUID == nil {
+                    Toggle(isOn: $model.audioSettings.avoidBluetoothMicrophone) {
+                        Text("Keep Bluetooth headphones in high quality")
+                        Text(bluetoothNote)
+                    }
                 }
                 DecibelSlider(title: "Microphone gain", value: $model.audioSettings.inputGainDB, range: -20...20)
             }
@@ -141,7 +149,17 @@ private struct CaptureSettingsView: View {
         }
         .formStyle(.grouped)
         .frame(height: 640)
-        .onAppear { inputs = AudioDevices.inputs() }
+        .onAppear {
+            inputs = AudioDevices.inputs()
+            substitute = VoiceEngine.substitutedInput(for: model.audioSettings)
+        }
+    }
+
+    private var bluetoothNote: String {
+        if model.audioSettings.avoidBluetoothMicrophone, let substitute {
+            return "Using \(substitute.name) now: a Bluetooth headset's microphone switches it to low-quality call audio."
+        }
+        return "When the default microphone is a Bluetooth headset, use the Mac's built-in microphone instead. Using the headset's microphone switches it to low-quality call audio."
     }
 }
 

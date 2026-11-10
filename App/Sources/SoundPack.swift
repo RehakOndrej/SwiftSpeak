@@ -43,12 +43,11 @@ final class SoundPack {
             voice.playEffect(samples)
             return
         }
-        // Disconnected or not started yet: bring up the speakers only (never the microphone),
-        // off the UI thread because starting an engine can take a while.
+        // Disconnected or not started yet: bring up the speakers only (never the microphone).
+        // The engine starts on its own queue, so this doesn't block the UI.
         let voice = self.voice
         Task {
-            let started = await Task.detached { (try? voice.startPlayback()) != nil }.value
-            guard started else { return }
+            guard (try? await voice.startPlayback()) != nil else { return }
             voice.playEffect(samples)
             onStartedPlayback?()
         }

@@ -27,6 +27,9 @@ public struct AudioSettings: Equatable, Sendable {
     public var noiseSuppressionStrength: Float = 0.5
     /// Apple voice processing (echo cancellation). Uses the system default output device.
     public var echoCancellation = false
+    /// On "System default", use the built-in microphone instead of a Bluetooth headset's, which would
+    /// switch the headset to low-quality call mode.
+    public var avoidBluetoothMicrophone = true
     /// Turn other voices down while you talk.
     public var ducking = false
     public var duckingDB: Float = 10
@@ -49,6 +52,7 @@ extension AudioSettings: Codable {
         case inputDeviceUID, inputGainDB, activation, voiceActivationThresholdDB
         case pushToTalkReleaseDelayEnabled, pushToTalkReleaseDelay, pushToTalkUsesVoiceActivation
         case typingAttenuation, noiseSuppression, noiseSuppressionStrength, echoCancellation, ducking, duckingDB
+        case avoidBluetoothMicrophone
         case outputDeviceUID, voiceVolumeDB, soundPackVolumeDB, automaticVoiceLeveling
         case ownMicClicks, otherMicClicks, comfortNoise, comfortNoiseDB
         case outputVolume // 0.1.0: linear output volume, replaced by voiceVolumeDB
@@ -72,6 +76,7 @@ extension AudioSettings: Codable {
         noiseSuppression = value(.noiseSuppression, d.noiseSuppression)
         noiseSuppressionStrength = value(.noiseSuppressionStrength, d.noiseSuppressionStrength)
         echoCancellation = value(.echoCancellation, d.echoCancellation)
+        avoidBluetoothMicrophone = value(.avoidBluetoothMicrophone, d.avoidBluetoothMicrophone)
         ducking = value(.ducking, d.ducking)
         duckingDB = value(.duckingDB, d.duckingDB)
         outputDeviceUID = try? c.decodeIfPresent(String.self, forKey: .outputDeviceUID)
@@ -101,6 +106,7 @@ extension AudioSettings: Codable {
         try c.encode(noiseSuppression, forKey: .noiseSuppression)
         try c.encode(noiseSuppressionStrength, forKey: .noiseSuppressionStrength)
         try c.encode(echoCancellation, forKey: .echoCancellation)
+        try c.encode(avoidBluetoothMicrophone, forKey: .avoidBluetoothMicrophone)
         try c.encode(ducking, forKey: .ducking)
         try c.encode(duckingDB, forKey: .duckingDB)
         try c.encodeIfPresent(outputDeviceUID, forKey: .outputDeviceUID)
@@ -208,12 +214,15 @@ public final class VoiceEngine: @unchecked Sendable {
     private let frameSink = Mutex<(@Sendable (UInt8, [UInt8]) -> Void)?>(nil)
     /// Per-speaker volume set by the user (linear; 0 = muted locally). Missing = 1.
     private let speakerGains = Mutex<[UInt16: Float]>([:])
-    // Engines, guarded by `engineLock`. With echo cancellation one engine does both jobs.
+    // Engines: only ever touched on `audioQueue`. With echo cancellation one engine does both jobs.
     private var outputEngine: AVAudioEngine?
     /// Has the microphone tap; nil while only playback runs (e.g. for a notification sound).
     private var captureEngine: AVAudioEngine?
-    private let engineLock = NSLock()
-    /// What is running, readable without `engineLock` (which is held while engines restart).
+    /// Every AVAudioEngine operation runs here, one at a time. Callers never wait on it: CoreAudio can
+    /// stall for seconds (or longer) while a Bluetooth headset reconfigures, and that must never
+    /// freeze the UI or tie up other threads.
+    private let audioQueue = DispatchQueue(label: "ts3.audio.engine", qos: .userInitiated)
+    /// What is running (or has been asked to run), readable from any thread.
     private let engineFlags = Mutex((running: false, capturing: false))
 
     /// AVAudioEngine stops itself when its device is reconfigured (e.g. AirPods switching to headset
@@ -225,7 +234,6 @@ public final class VoiceEngine: @unchecked Sendable {
     private var recentRebuilds: [Date] = []
     /// When the microphone last delivered audio (to notice a capture engine that died silently).
     private let lastInput = Mutex(Date.distantPast)
-    private let rebuildQueue = DispatchQueue(label: "ts3.audio.rebuild")
 
     /// Microphone → 48 kHz mono converter, made for the format the tap actually delivers.
     private let inputConverter = Mutex<(format: AVAudioFormat, converter: AVAudioConverter)?>(nil)
@@ -247,6 +255,7 @@ public final class VoiceEngine: @unchecked Sendable {
             return old.inputDeviceUID != settings.inputDeviceUID
                 || old.outputDeviceUID != settings.outputDeviceUID
                 || old.echoCancellation != settings.echoCancellation
+                || old.avoidBluetoothMicrophone != settings.avoidBluetoothMicrophone
         }
         playback.withLock { state in
             state.voiceGain = Self.gain(settings.voiceVolumeDB)
@@ -256,7 +265,7 @@ public final class VoiceEngine: @unchecked Sendable {
             state.comfortNoiseAmplitude = settings.comfortNoise ? Self.gain(settings.comfortNoiseDB) : 0
         }
         // Restarting engines is slow (seconds with Bluetooth); never do it on the caller's (UI) thread.
-        if restartNeeded { rebuildQueue.async { [weak self] in self?.restart() } }
+        if restartNeeded { audioQueue.async { [weak self] in self?.restart() } }
     }
 
     /// Codec and quality of the channel we are in; voice must be encoded with it.
@@ -319,9 +328,59 @@ public final class VoiceEngine: @unchecked Sendable {
     // MARK: - Lifecycle
 
     /// Starts playback and capture. If only playback was running, adds capture to it.
-    public func start() throws {
-        engineLock.lock()
-        defer { engineLock.unlock() }
+    public func start() async throws {
+        try await onAudioQueue { try $0.startCaptureAndPlayback() }
+        if capture.withLock({ $0.encoder == nil }) {
+            setCodec(.opusVoice, quality: 6)
+        }
+    }
+
+    /// Starts only the speaker side (no microphone), e.g. to play a notification sound while disconnected.
+    public func startPlayback() async throws {
+        try await onAudioQueue { try $0.startPlaybackOnly() }
+    }
+
+    /// Stops everything. Returns at once; the engines are torn down on the audio queue.
+    public func stop() {
+        engineFlags.withLock { $0 = (false, false) }
+        playback.withLock { state in
+            state.streams.removeAll()
+            state.loopback = PCMStream()
+            state.effects.removeAll()
+        }
+        decoders.withLock { $0.removeAll() }
+        endTransmission()
+        audioQueue.async { [weak self] in
+            guard let self else { return }
+            self.stopAll()
+            self.capture.withLock { $0.denoiser.reset() }
+            self.updateFlags()
+        }
+    }
+
+    /// Whether playback is running (sounds and voices can be heard).
+    public var isRunning: Bool { engineFlags.withLock { $0.running } }
+
+    /// Whether the microphone is running too.
+    public var isCapturing: Bool { engineFlags.withLock { $0.capturing } }
+
+    /// Runs `work` on the audio queue and waits for it without blocking a thread.
+    private func onAudioQueue(_ work: @escaping @Sendable (VoiceEngine) throws -> Void) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+            audioQueue.async { [self] in
+                do {
+                    try work(self)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    // MARK: Engine plumbing (audio queue only)
+
+    private func startCaptureAndPlayback() throws {
         guard captureEngine == nil else { return }
         startWarning = nil
         let settings = capture.withLock { $0.settings }
@@ -339,15 +398,9 @@ public final class VoiceEngine: @unchecked Sendable {
             throw error
         }
         updateFlags()
-        if capture.withLock({ $0.encoder == nil }) {
-            setCodec(.opusVoice, quality: 6)
-        }
     }
 
-    /// Starts only the speaker side (no microphone), e.g. to play a notification sound while disconnected.
-    public func startPlayback() throws {
-        engineLock.lock()
-        defer { engineLock.unlock() }
+    private func startPlaybackOnly() throws {
         guard outputEngine == nil else { return }
         startWarning = nil
         do {
@@ -360,39 +413,18 @@ public final class VoiceEngine: @unchecked Sendable {
         updateFlags()
     }
 
-    public func stop() {
-        engineLock.lock()
+    private func restart() {
+        let wasRunning = outputEngine != nil, wasCapturing = captureEngine != nil
+        guard wasRunning else { return }
         stopAll()
         updateFlags()
-        engineLock.unlock()
-        playback.withLock { state in
-            state.streams.removeAll()
-            state.loopback = PCMStream()
-            state.effects.removeAll()
-        }
-        decoders.withLock { $0.removeAll() }
-        capture.withLock { $0.denoiser.reset() }
-        endTransmission()
-    }
-
-    /// Whether playback is running (sounds and voices can be heard).
-    public var isRunning: Bool { engineFlags.withLock { $0.running } }
-
-    /// Whether the microphone is running too.
-    public var isCapturing: Bool { engineFlags.withLock { $0.capturing } }
-
-    private func restart() {
-        let (running, capturing) = engineFlags.withLock { ($0.running, $0.capturing) }
-        guard running else { return }
-        stop()
         do {
-            if capturing { try start() } else { try startPlayback() }
+            if wasCapturing { try startCaptureAndPlayback() } else { try startPlaybackOnly() }
         } catch {
             startWarning = "Audio failed to restart: \(error.localizedDescription)"
         }
     }
 
-    // MARK: Engine plumbing (callers hold `engineLock`)
 
     private func updateFlags() {
         let flags = (running: outputEngine != nil, capturing: captureEngine != nil)
@@ -436,7 +468,7 @@ public final class VoiceEngine: @unchecked Sendable {
 
     private func startInput(_ settings: AudioSettings) throws {
         let engine = AVAudioEngine()
-        if let device = AudioDevices.device(uid: settings.inputDeviceUID, inputs: true) {
+        if let device = Self.inputDevice(for: settings) {
             try setDevice(device, on: engine.inputNode)
         }
         try installCaptureTap(on: engine)
@@ -530,7 +562,7 @@ public final class VoiceEngine: @unchecked Sendable {
             request.generation += 1
             return request.generation
         }
-        rebuildQueue.asyncAfter(deadline: .now() + settleTime) { [weak self] in
+        audioQueue.asyncAfter(deadline: .now() + settleTime) { [weak self] in
             guard let self, self.rebuildRequest.withLock({ $0.generation }) == generation else { return }
             self.rebuildChangedEngines()
         }
@@ -540,13 +572,11 @@ public final class VoiceEngine: @unchecked Sendable {
     /// engine that delivers no buffers at all (a working one always does, even while muted).
     /// Never blocks the caller.
     public func checkHealth() {
-        rebuildQueue.async { [weak self] in
+        audioQueue.async { [weak self] in
             guard let self else { return }
-            self.engineLock.lock()
             let outputStopped = self.outputEngine.map { !$0.isRunning } ?? false
             let capturing = self.captureEngine != nil
             let captureStopped = self.captureEngine.map { !$0.isRunning } ?? false
-            self.engineLock.unlock()
             let inputSilentFor = Date().timeIntervalSince(self.lastInput.withLock { $0 })
             if outputStopped { self.configurationChanged(.output, settleTime: 0.1) }
             if capturing && (captureStopped || inputSilentFor > 3) {
@@ -558,8 +588,6 @@ public final class VoiceEngine: @unchecked Sendable {
     /// Restarts only the engines whose device changed, keeping queued sounds and voice buffers.
     /// Restarting playback alone never reopens the microphone, so it can't set off another change.
     private func rebuildChangedEngines() {
-        engineLock.lock()
-        defer { engineLock.unlock() }
         let roles = rebuildRequest.withLock { request -> Set<EngineRole> in
             defer { request.roles.removeAll() }
             return request.roles
@@ -593,6 +621,23 @@ public final class VoiceEngine: @unchecked Sendable {
             startWarning = "Audio stopped after the device changed: \(error.localizedDescription)"
         }
         updateFlags()
+    }
+
+    /// The microphone to open: the chosen one; or, on "System default" when that is a Bluetooth headset
+    /// and `avoidBluetoothMicrophone` is on, the built-in microphone, so the headset stays in
+    /// high-quality playback mode instead of switching to headset (call) mode. nil = system default.
+    static func inputDevice(for settings: AudioSettings) -> AudioDeviceID? {
+        if let uid = settings.inputDeviceUID, !uid.isEmpty {
+            return AudioDevices.device(uid: uid, inputs: true)
+        }
+        return substitutedInput(for: settings)?.id
+    }
+
+    /// The built-in microphone used instead of a Bluetooth default, or nil when no substitution applies.
+    public static func substitutedInput(for settings: AudioSettings) -> AudioDevice? {
+        guard settings.inputDeviceUID == nil, settings.avoidBluetoothMicrophone,
+              let defaultInput = AudioDevices.defaultInput(), AudioDevices.isBluetooth(defaultInput) else { return nil }
+        return AudioDevices.builtInInput()
     }
 
     private func setDevice(_ device: AudioDeviceID, on node: AVAudioIONode) throws {

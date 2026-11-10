@@ -13,6 +13,25 @@ public enum AudioDevices {
     public static func outputs() -> [AudioDevice] { all().filter { channelCount($0.id, scope: kAudioObjectPropertyScopeOutput) > 0 } }
 
     public static func defaultInput() -> AudioDeviceID? { defaultDevice(kAudioHardwarePropertyDefaultInputDevice) }
+
+    /// Whether a device is connected over Bluetooth (classic or LE).
+    public static func isBluetooth(_ id: AudioDeviceID) -> Bool {
+        let transport = transportType(id)
+        return transport == kAudioDeviceTransportTypeBluetooth || transport == kAudioDeviceTransportTypeBluetoothLE
+    }
+
+    /// The Mac's own microphone, if it has one.
+    public static func builtInInput() -> AudioDevice? {
+        inputs().first { transportType($0.id) == kAudioDeviceTransportTypeBuiltIn }
+    }
+
+    private static func transportType(_ id: AudioDeviceID) -> UInt32 {
+        var address = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyTransportType, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+        var value: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        guard AudioObjectGetPropertyData(id, &address, 0, nil, &size, &value) == noErr else { return 0 }
+        return value
+    }
     public static func defaultOutput() -> AudioDeviceID? { defaultDevice(kAudioHardwarePropertyDefaultOutputDevice) }
 
     /// Resolves a saved device UID to the current id; nil means "system default".
