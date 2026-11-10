@@ -118,8 +118,8 @@ final class AppModel {
 
     private func wireUp() {
         let voice = self.voice
-        client.voiceSink = { clientId, codec, data in
-            voice.receive(clientId: clientId, codec: codec, data: data)
+        client.voiceSink = { clientId, sequence, codec, data in
+            voice.receive(clientId: clientId, sequence: sequence, codec: codec, data: data)
         }
         voice.onInputLevel = { [weak self] level, open in
             Task { @MainActor in

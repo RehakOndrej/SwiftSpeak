@@ -44,9 +44,24 @@ final class OpusEncoderBox {
     }
 }
 
-final class OpusDecoderBox {
+/// What the jitter buffer needs from a decoder. All calls come from one thread at a time and must
+/// not allocate: they run on the audio render thread.
+protocol VoiceFrameDecoder: AnyObject {
+    /// Samples (at 48 kHz) the packet decodes to, or 0 when it is not a valid packet.
+    func sampleCount(of packet: [UInt8]) -> Int
+    /// Decodes `packet` into `out`; returns the number of samples written (0 on failure).
+    func decode(_ packet: [UInt8], into out: UnsafeMutableBufferPointer<Float>) -> Int
+    /// Rebuilds the frame lost just before `next` from the redundancy `next` carries (falls back to
+    /// concealment when it carries none). Writes exactly `count` samples.
+    func recover(from next: [UInt8], count: Int, into out: UnsafeMutableBufferPointer<Float>) -> Int
+    /// Invents `count` samples that continue the previous audio, fading out over repeated calls.
+    func conceal(count: Int, into out: UnsafeMutableBufferPointer<Float>) -> Int
+}
+
+final class OpusDecoderBox: VoiceFrameDecoder {
+    /// The longest Opus packet: 120 ms at 48 kHz.
+    static let maxFrameSamples = 5760
     private let decoder: OpaquePointer
-    private var pcm = [Float](repeating: 0, count: 5760) // max 120 ms at 48 kHz
 
     init?() {
         var error: Int32 = 0
@@ -57,12 +72,37 @@ final class OpusDecoderBox {
 
     deinit { opus_decoder_destroy(decoder) }
 
-    func decode(_ data: [UInt8]) -> [Float] {
-        let n = data.withUnsafeBufferPointer { input in
-            pcm.withUnsafeMutableBufferPointer { out in
-                opus_decode_float(decoder, input.baseAddress, Int32(input.count), out.baseAddress!, Int32(out.count), 0)
-            }
+    func sampleCount(of packet: [UInt8]) -> Int {
+        guard !packet.isEmpty else { return 0 }
+        let n = packet.withUnsafeBufferPointer {
+            opus_packet_get_nb_samples($0.baseAddress!, Int32($0.count), Int32(OpusConstants.sampleRate))
         }
-        return n > 0 ? Array(pcm[0..<Int(n)]) : []
+        return max(0, Int(n))
+    }
+
+    func decode(_ packet: [UInt8], into out: UnsafeMutableBufferPointer<Float>) -> Int {
+        let n = packet.withUnsafeBufferPointer { input in
+            opus_decode_float(decoder, input.baseAddress, Int32(input.count), out.baseAddress!, Int32(out.count), 0)
+        }
+        return max(0, Int(n))
+    }
+
+    func recover(from next: [UInt8], count: Int, into out: UnsafeMutableBufferPointer<Float>) -> Int {
+        let n = next.withUnsafeBufferPointer { input in
+            opus_decode_float(decoder, input.baseAddress, Int32(input.count), out.baseAddress!, Int32(min(count, out.count)), 1)
+        }
+        return max(0, Int(n))
+    }
+
+    func conceal(count: Int, into out: UnsafeMutableBufferPointer<Float>) -> Int {
+        let n = opus_decode_float(decoder, nil, 0, out.baseAddress!, Int32(min(count, out.count)), 0)
+        return max(0, Int(n))
+    }
+
+    /// Convenience for tests and one-off decoding.
+    func decode(_ data: [UInt8]) -> [Float] {
+        var pcm = [Float](repeating: 0, count: Self.maxFrameSamples)
+        let n = pcm.withUnsafeMutableBufferPointer { decode(data, into: $0) }
+        return Array(pcm[0..<n])
     }
 }

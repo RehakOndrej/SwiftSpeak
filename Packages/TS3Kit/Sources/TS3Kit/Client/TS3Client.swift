@@ -40,8 +40,9 @@ public final class TS3Client {
         didSet { unread[activeChat] = nil }
     }
 
-    /// Receives voice on the connection's queue: (client id, codec, opus data; empty = end).
-    @ObservationIgnored public nonisolated(unsafe) var voiceSink: (@Sendable (UInt16, UInt8, [UInt8]) -> Void)?
+    /// Receives voice on the connection's queue: (client id, that client's packet counter, codec,
+    /// opus data; empty = end). Packets can be missing, out of order or duplicated.
+    @ObservationIgnored public nonisolated(unsafe) var voiceSink: (@Sendable (UInt16, UInt16, UInt8, [UInt8]) -> Void)?
     /// Called when we enter a channel, with its codec and quality.
     @ObservationIgnored public var onOwnChannelChanged: ((ChannelInfo) -> Void)?
     /// Called when the connection is gone.
@@ -138,9 +139,9 @@ public final class TS3Client {
         let connection = Connection(options: options)
         let lastVoice = self.lastVoice
         let sinkOwner = self
-        connection.voiceHandler = { clientId, codec, data, _ in
+        connection.voiceHandler = { clientId, sequence, codec, data, _ in
             lastVoice.map.withLock { $0[clientId] = data.isEmpty ? nil : Date() }
-            sinkOwner.voiceSink?(clientId, codec, data)
+            sinkOwner.voiceSink?(clientId, sequence, codec, data)
         }
         connection.pingHandler = { [weak self] seconds in
             Task { @MainActor in self?.updatePing(seconds) }
@@ -316,8 +317,8 @@ public final class TS3Client {
             status = .connected
         case .command(let command):
             handle(command)
-        case .voice(let clientId, let codec, let data, _):
-            voiceSink?(clientId, codec, data)
+        case .voice(let clientId, let sequence, let codec, let data, _):
+            voiceSink?(clientId, sequence, codec, data)
         case .closed(let error):
             if let error {
                 status = .failed(error.localizedDescription)

@@ -39,7 +39,8 @@ public enum ConnectionEvent: Sendable {
     /// The server accepted us (`initserver`); carries our client id.
     case connected(clientId: UInt16)
     case command(Command)
-    case voice(clientId: UInt16, codec: UInt8, data: [UInt8], whisper: Bool)
+    /// `sequence` is the talking client's own voice packet counter (wraps at 65 536).
+    case voice(clientId: UInt16, sequence: UInt16, codec: UInt8, data: [UInt8], whisper: Bool)
     case closed(TS3Error?)
 }
 
@@ -50,13 +51,16 @@ public final class Connection: @unchecked Sendable {
     public let events: AsyncStream<ConnectionEvent>
     public var log: (@Sendable (String) -> Void)?
     /// When set, voice packets go here (on the connection queue) instead of `events`.
-    /// Arguments: talking client id, codec, Opus data (empty = end of stream), whisper.
-    public var voiceHandler: (@Sendable (UInt16, UInt8, [UInt8], Bool) -> Void)?
+    /// Arguments: talking client id, that client's voice packet counter, codec, Opus data
+    /// (empty = end of stream), whisper. Packets arrive as the network delivers them: they can be
+    /// missing, out of order or duplicated, and the receiver sorts that out by the counter.
+    public var voiceHandler: (@Sendable (UInt16, UInt16, UInt8, [UInt8], Bool) -> Void)?
     /// Round-trip time of each answered ping, in seconds (called on the connection queue).
     public var pingHandler: (@Sendable (TimeInterval) -> Void)?
 
     private let options: ConnectOptions
-    private let queue = DispatchQueue(label: "ts3.connection")
+    /// Voice is decrypted and handed on here, so it runs at the priority of real-time audio.
+    private let queue = DispatchQueue(label: "ts3.connection", qos: .userInteractive)
     private let continuation: AsyncStream<ConnectionEvent>.Continuation
     private let logger = Logger(subsystem: "TS3Kit", category: "connection")
     private var udp: NWConnection?
@@ -95,6 +99,8 @@ public final class Connection: @unchecked Sendable {
     private var lastPing = Date.distantPast
     private var pingsInFlight: [UInt16: Date] = [:]
     private var clientInitCommandId: UInt16 = 0
+    /// How many packets behind the newest a voice packet may arrive and still be passed on.
+    private static let voiceReorderWindow: UInt16 = 64
 
     public init(options: ConnectOptions) {
         self.options = options
@@ -107,10 +113,14 @@ public final class Connection: @unchecked Sendable {
     public func start() {
         queue.async { [self] in
             guard phase == .idle else { return }
+            // Marks our packets as interactive voice, so Wi-Fi and the system's queues send them
+            // ahead of bulk traffic.
+            let parameters = NWParameters.udp
+            parameters.serviceClass = .interactiveVoice
             let conn = NWConnection(
                 host: NWEndpoint.Host(options.host),
                 port: NWEndpoint.Port(rawValue: options.port) ?? 9987,
-                using: .udp
+                using: parameters
             )
             udp = conn
             conn.stateUpdateHandler = { [weak self] state in self?.handleState(state) }
@@ -505,14 +515,17 @@ public final class Connection: @unchecked Sendable {
                 pingHandler?(Date().timeIntervalSince(sent))
             }
         case .voice, .voiceWhisper:
+            // A packet from before the newest one is either a little late (the jitter buffer can
+            // still put it in place) or an old duplicate, which is dropped here.
+            guard inWindow || next &- id <= Self.voiceReorderWindow else { return }
             advanceIncoming(t, id: id, generation: generation, inWindow: inWindow)
             let p = packet.payload
             guard p.count >= 5 else { return }
             let whisper = packet.type == .voiceWhisper
             if let voiceHandler {
-                voiceHandler(p.readU16(2), p[4], Array(p[5...]), whisper)
+                voiceHandler(p.readU16(2), p.readU16(0), p[4], Array(p[5...]), whisper)
             } else {
-                continuation.yield(.voice(clientId: p.readU16(2), codec: p[4], data: Array(p[5...]), whisper: whisper))
+                continuation.yield(.voice(clientId: p.readU16(2), sequence: p.readU16(0), codec: p[4], data: Array(p[5...]), whisper: whisper))
             }
         case .init1:
             break

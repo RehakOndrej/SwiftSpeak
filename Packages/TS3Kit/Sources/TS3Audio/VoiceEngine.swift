@@ -120,7 +120,8 @@ extension AudioSettings: Codable {
     }
 }
 
-/// Microphone → processing → Opus frames, and Opus frames → per-speaker jitter buffers → mixer → speakers.
+/// Microphone → processing → Opus frames, and Opus packets → per-speaker jitter buffers (which
+/// decode, reorder and conceal losses) → mixer → speakers.
 ///
 /// Capture and playback normally run on separate AVAudioEngines so each can use its own device.
 /// With echo cancellation on, both run on one engine with Apple's voice processing, which needs to
@@ -161,7 +162,7 @@ public final class VoiceEngine: @unchecked Sendable {
         var lastLevelReport = Date.distantPast
     }
 
-    /// Decoded PCM waiting to be played.
+    /// Decoded PCM waiting to be played (the microphone test; voices use `JitterBuffer`).
     private struct PCMStream {
         var samples: [Float] = []
         var readIndex = 0
@@ -179,18 +180,15 @@ public final class VoiceEngine: @unchecked Sendable {
         }
     }
 
-    private struct SpeakerDecoder {
-        let opus: OpusDecoderBox
-        var levelingGain: Float = 1
-    }
-
     private struct Effect {
         let samples: [Float]
         var index = 0
     }
 
     private struct PlaybackState {
-        var streams: [UInt16: PCMStream] = [:]
+        /// One per speaker heard so far; kept between transmissions so what it learned about the
+        /// speaker's jitter and level carries over.
+        var streams: [UInt16: JitterBuffer] = [:]
         var loopback = PCMStream()
         var effects: [Effect] = []
         var muted = false
@@ -209,8 +207,6 @@ public final class VoiceEngine: @unchecked Sendable {
 
     private let capture = Mutex(CaptureState())
     private let playback = Mutex(PlaybackState())
-    /// Only touched from `receive` (the network queue), never from the render thread.
-    private let decoders = Mutex<[UInt16: SpeakerDecoder]>([:])
     /// The closure sits in a struct on purpose. Kept directly in the `Mutex`, every read through
     /// `withLock` wrapped it in one more layer of compiler-made conversion and stored that back;
     /// with a read per microphone buffer, calling it overflowed the stack after some minutes.
@@ -267,6 +263,7 @@ public final class VoiceEngine: @unchecked Sendable {
             state.voiceGain = Self.gain(settings.voiceVolumeDB)
             state.effectsGain = Self.gain(settings.soundPackVolumeDB)
             state.leveling = settings.automaticVoiceLeveling
+            for stream in state.streams.values { stream.leveling = settings.automaticVoiceLeveling }
             state.otherMicClicks = settings.otherMicClicks
             state.comfortNoiseAmplitude = settings.comfortNoise ? Self.gain(settings.comfortNoiseDB) : 0
         }
@@ -354,7 +351,6 @@ public final class VoiceEngine: @unchecked Sendable {
             state.loopback = PCMStream()
             state.effects.removeAll()
         }
-        decoders.withLock { $0.removeAll() }
         endTransmission()
         audioQueue.async { [weak self] in
             guard let self else { return }
@@ -816,55 +812,41 @@ public final class VoiceEngine: @unchecked Sendable {
 
     // MARK: - Playback
 
-    /// Feeds one received voice packet. Empty data marks the end of that speaker's stream.
-    public func receive(clientId: UInt16, codec: UInt8, data: [UInt8]) {
+    /// Feeds one received voice packet, in whatever order the network delivered it. `sequence` is the
+    /// speaker's own packet counter; empty data marks the end of that speaker's transmission.
+    public func receive(clientId: UInt16, sequence: UInt16, codec: UInt8, data: [UInt8]) {
         guard codec == VoiceCodec.opusVoice.rawValue || codec == VoiceCodec.opusMusic.rawValue else { return }
-        let (muted, leveling) = playback.withLock { ($0.muted, $0.leveling) }
-        guard !muted else { return }
         let speakerGain = speakerGains.withLock { $0[clientId] ?? 1 }
         guard speakerGain > 0 else { return } // muted locally
+        let now = Double(DispatchTime.now().uptimeNanoseconds) / 1e9
 
-        if data.isEmpty {
-            playback.withLock { state in
-                guard state.streams[clientId] != nil, state.streams[clientId]?.ended == false else { return }
-                state.streams[clientId]?.ended = true
-                if state.otherMicClicks { state.effects.append(Effect(samples: Self.clickOff)) }
-            }
-            return
+        // A new speaker's decoder is made outside the lock, so the render thread never waits for it.
+        var fresh: JitterBuffer?
+        if playback.withLock({ !$0.muted && $0.streams[clientId] == nil }) {
+            guard let opus = OpusDecoderBox() else { return }
+            fresh = JitterBuffer(decoder: opus)
         }
-
-        // Decode outside the playback lock so the render thread never waits on Opus.
-        let pcm = decoders.withLock { decoders -> [Float] in
-            if decoders[clientId] == nil {
-                guard let opus = OpusDecoderBox() else { return [] }
-                decoders[clientId] = SpeakerDecoder(opus: opus)
-            }
-            var pcm = decoders[clientId]!.opus.decode(data)
-            if leveling, !pcm.isEmpty {
-                var gain = decoders[clientId]!.levelingGain
-                Self.level(&pcm, gain: &gain)
-                decoders[clientId]!.levelingGain = gain
-            }
-            if speakerGain != 1 {
-                for i in pcm.indices { pcm[i] *= speakerGain }
-            }
-            return pcm
-        }
-        guard !pcm.isEmpty else { return }
-
         playback.withLock { state in
-            let starting = state.streams[clientId].map { $0.ended || (!$0.playing && $0.available == 0) } ?? true
-            var stream = state.streams.removeValue(forKey: clientId) ?? PCMStream()
-            stream.ended = false
-            stream.append(pcm, maxBuffered: Self.maxBufferedSamples, prebuffer: Self.prebufferSamples)
-            state.streams[clientId] = stream
-            if starting && state.otherMicClicks {
+            guard !state.muted else { return }
+            let stream: JitterBuffer
+            if let existing = state.streams[clientId] {
+                stream = existing
+            } else if let fresh {
+                fresh.leveling = state.leveling
+                state.streams[clientId] = fresh
+                stream = fresh
+            } else {
+                return
+            }
+            stream.userGain = speakerGain
+            let wasActive = stream.isActive
+            stream.insert(sequence: sequence, data: data, now: now)
+            guard state.otherMicClicks else { return }
+            if data.isEmpty {
+                if wasActive { state.effects.append(Effect(samples: Self.clickOff)) }
+            } else if !wasActive && stream.isActive {
                 state.effects.removeAll { $0.index >= $0.samples.count }
                 state.effects.append(Effect(samples: Self.clickOn))
-            }
-            // Drop finished speakers here rather than on the render thread.
-            for (id, s) in state.streams where s.ended && s.available == 0 {
-                state.streams[id] = nil
             }
         }
     }
@@ -872,34 +854,21 @@ public final class VoiceEngine: @unchecked Sendable {
     /// Local volume per client id (linear gain; 0 mutes that speaker only for us).
     public func setSpeakerGains(_ gains: [UInt16: Float]) {
         speakerGains.withLock { $0 = gains }
-        let muted = Set(gains.filter { $0.value == 0 }.keys)
-        if !muted.isEmpty {
-            playback.withLock { state in for id in muted { state.streams[id] = nil } }
+        playback.withLock { state in
+            for (id, gain) in gains where gain == 0 { state.streams[id] = nil }
+            for (id, stream) in state.streams { stream.userGain = gains[id] ?? 1 }
         }
     }
 
     public func removeSpeaker(_ clientId: UInt16) {
         playback.withLock { _ = $0.streams.removeValue(forKey: clientId) }
-        decoders.withLock { _ = $0.removeValue(forKey: clientId) }
     }
 
-    /// Automatic voice leveling: nudges each speaker toward about −23 dBFS RMS, within ±12 dB.
-    private static func level(_ pcm: inout [Float], gain: inout Float) {
-        var sum: Float = 0
-        for s in pcm { sum += s * s }
-        let db = 10 * log10f(max(sum / Float(pcm.count), 1e-10))
-        if db > -50 { // only adapt on speech, not on silence
-            let desired = max(0.25, min(4, powf(10, (-23 - db) / 20)))
-            gain += (desired - gain) * 0.1
-        }
-        for i in pcm.indices { pcm[i] *= gain }
-    }
-
-    /// Render thread: no allocation, no decoding, only short lock hold.
+    /// Render thread: no allocation; the lock is held only while the due frames are decoded and mixed.
     private func mix(into out: UnsafeMutablePointer<Float>, count: Int) {
         playback.withLock { state in
-            for i in state.streams.values.indices {
-                Self.read(&state.streams.values[i], into: out, count: count, gain: state.voiceGain)
+            for stream in state.streams.values {
+                stream.render(into: out, count: count, gain: state.voiceGain)
             }
 
             // Ducking applies to other voices only, smoothed over ~20 ms.
