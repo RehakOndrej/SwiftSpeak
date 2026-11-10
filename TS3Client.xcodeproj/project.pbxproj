@@ -17,6 +17,7 @@
 		59B8BB6178F848BD40E1A5E5 /* TS3Kit in Frameworks */ = {isa = PBXBuildFile; productRef = FD765E88A642049D4C725AB5 /* TS3Kit */; };
 		67110B4BDE7F0C9947612B7A /* ConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86B214DF87D7821164958832 /* ConnectView.swift */; };
 		6918D038052A94499377DBB8 /* Sheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E0CCD7B6527C6FD16C43E6 /* Sheets.swift */; };
+		736314125C64D8A66ADB461B /* SoundPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FD38847FC7CEC3DB1A37F1 /* SoundPack.swift */; };
 		744546A40DF6196AE7929DDD /* TS3Audio in Frameworks */ = {isa = PBXBuildFile; productRef = 33DB5C2A3CD13E01C241B35E /* TS3Audio */; };
 		8200AF041AE7ADD961F7A3DF /* InfoPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400AACEA84DDED2D574B9B70 /* InfoPanel.swift */; };
 		842C4214D741666C1AD9054C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02EB635DFDE570D1953ECDE8 /* SettingsView.swift */; };
@@ -37,6 +38,7 @@
 		400AACEA84DDED2D574B9B70 /* InfoPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoPanel.swift; sourceTree = "<group>"; };
 		66EC84B75080967077906130 /* TS3Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TS3Kit; path = Packages/TS3Kit; sourceTree = SOURCE_ROOT; };
 		6A1D8A4172BEDA1DB2A62130 /* AudioPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPanel.swift; sourceTree = "<group>"; };
+		71FD38847FC7CEC3DB1A37F1 /* SoundPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPack.swift; sourceTree = "<group>"; };
 		74F0AB2719FFDA89E8EFB870 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		86B214DF87D7821164958832 /* ConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectView.swift; sourceTree = "<group>"; };
 		8C562BF2C264F7C6B67F2A3A /* Hotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hotkey.swift; sourceTree = "<group>"; };
@@ -101,6 +103,7 @@
 				D52737BD53F46C701B9AA133 /* ServerTreeView.swift */,
 				02EB635DFDE570D1953ECDE8 /* SettingsView.swift */,
 				27E0CCD7B6527C6FD16C43E6 /* Sheets.swift */,
+				71FD38847FC7CEC3DB1A37F1 /* SoundPack.swift */,
 				1CE826017304E2595558BA76 /* SplitPane.swift */,
 				F6146D4FD2328C55D28B5424 /* Storage.swift */,
 				C17A610F311FB34B2FB28295 /* TS3ClientApp.swift */,
@@ -194,6 +197,7 @@
 				CE40D2721F5EBB2C6056DE16 /* ServerTreeView.swift in Sources */,
 				842C4214D741666C1AD9054C /* SettingsView.swift in Sources */,
 				6918D038052A94499377DBB8 /* Sheets.swift in Sources */,
+				736314125C64D8A66ADB461B /* SoundPack.swift in Sources */,
 				29EEDC1F652D746C2B63D63C /* SplitPane.swift in Sources */,
 				268960AFEDC48FC99B6D488F /* Storage.swift in Sources */,
 				89BCDEE4B644B058C433341B /* TS3ClientApp.swift in Sources */,

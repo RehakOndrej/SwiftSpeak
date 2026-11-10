@@ -41,6 +41,7 @@ TS3_PASSWORD='…' swift run ts3probe <host> <port> [nickname] [channel-id]
   third-party client does. Fine for personal use; don't distribute it.
 - Voice is Opus only. Channels using Speex/CELT are shown with a warning, and you can't talk in them.
 - Push to talk defaults to holding ⌥ Option; set any key, modifier combination or extra mouse button in Settings → Capture. Keyboard hotkeys work while the app is in the background only with Accessibility access.
+- Sound pack: put files named after the events (`connected.mp3`, `user_switched_tocurrentchannel.wav`, …) in `~/Library/Application Support/TS3 Client/Sounds` (Settings → Playback → Open Sounds Folder lists the names). Missing ones are silent.
 - Background-noise removal is a built-in spectral suppressor (`TS3Audio/NoiseSuppressor.swift`). Echo cancellation uses Apple voice processing, which plays through the system default output device.
 - Identity and server passwords are kept in `~/Library/Application Support/TS3 Client/secrets.json` (mode 0600), not the Keychain: an ad-hoc signed build changes signature on every rebuild, which made macOS ask for the keychain password each time. Older Keychain entries are migrated once. The identity is generated at hashcash level 8.
 - Protocol reference: ReSpeak's `tsclientlib` (MIT/Apache). QuickLZ decompression is ported from its `quicklz` crate.

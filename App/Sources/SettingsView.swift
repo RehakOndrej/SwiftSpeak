@@ -297,6 +297,8 @@ private struct PlaybackSettingsView: View {
                 }
             }
 
+            SoundPackSection()
+
             Section("Options") {
                 Toggle(isOn: $model.audioSettings.automaticVoiceLeveling) {
                     Text("Automatic voice volume leveling")
@@ -322,6 +324,32 @@ private struct PlaybackSettingsView: View {
         .formStyle(.grouped)
         .frame(height: 520)
         .onAppear { outputs = AudioDevices.outputs() }
+    }
+}
+
+private struct SoundPackSection: View {
+    @Environment(AppModel.self) private var model
+    @State private var available = 0
+
+    var body: some View {
+        @Bindable var model = model
+        Section("Sound pack") {
+            Toggle(isOn: $model.soundsEnabled) {
+                Text("Spoken notifications")
+                Text("\"Connected\", \"User joined your channel\" and so on, at the sound pack volume.")
+            }
+            LabeledContent("Sounds found") {
+                HStack {
+                    Text("\(available) of \(SoundPack.allNames.count)").monospacedDigit()
+                    Button("Reload") {
+                        model.soundPack.reload()
+                        available = model.soundPack.availableCount
+                    }
+                    Button("Open Sounds Folder") { model.soundPack.revealFolder() }
+                }
+            }
+        }
+        .onAppear { available = model.soundPack.availableCount }
     }
 }
 

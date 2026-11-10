@@ -106,6 +106,11 @@ enum Storage {
         set { save(newValue, "userAudio") }
     }
 
+    static var soundsEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: "soundsEnabled") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "soundsEnabled") }
+    }
+
     static var awayMessage: String {
         get { UserDefaults.standard.string(forKey: "awayMessage") ?? "" }
         set { UserDefaults.standard.set(newValue, forKey: "awayMessage") }

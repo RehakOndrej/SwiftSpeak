@@ -48,6 +48,8 @@ public final class TS3Client {
     @ObservationIgnored public var onDisconnected: (() -> Void)?
     /// A chat message or poke from someone else arrived: (message, tab it went to).
     @ObservationIgnored public var onIncomingMessage: ((ChatMessage, ChatTarget) -> Void)?
+    /// Notable events, e.g. for sounds.
+    @ObservationIgnored public var onEvent: ((ClientEvent) -> Void)?
 
     @ObservationIgnored private var connection: Connection?
     @ObservationIgnored private var eventTask: Task<Void, Never>?
@@ -320,9 +322,12 @@ public final class TS3Client {
             if let error {
                 status = .failed(error.localizedDescription)
                 add(ChatMessage(event: "\(error.localizedDescription)", tone: .negative, kind: .error), to: .server)
+                if wasConnected { onEvent?(.connectionLost) }
             } else {
                 status = .disconnected
                 self.event("Disconnected")
+                // A kick or ban already had its own sound.
+                if wasConnected && removalReason == nil { onEvent?(.disconnected) }
             }
             resetState()
         }
@@ -340,6 +345,7 @@ public final class TS3Client {
             server.maxClients = a.int("virtualserver_maxclients") ?? 0
             server.hostMessage = a["virtualserver_hostmessage"] ?? ""
             event("Connected to server \(server: server.name)", tone: .positive)
+            onEvent?(.connected)
             if !server.welcomeMessage.isEmpty {
                 var welcome = ChatMessage(kind: .message, text: server.welcomeMessage)
                 welcome.tone = .positive
@@ -399,6 +405,9 @@ public final class TS3Client {
                 if added { clients[id]?.serverGroups.append(sgid) }
                 let group = e["name"] ?? serverGroups[sgid]?.name ?? "?"
                 let who = clients[id]?.nickname ?? "?"
+                if id == ownClientId && isReady && byUser(e) {
+                    onEvent?(added ? .serverGroupAssigned : .serverGroupRevoked)
+                }
                 event(added ? "Server group \(group: group) was assigned to \(client: who)\(by(e))"
                             : "Server group \(group: group) was removed from \(client: who)\(by(e))")
             }
@@ -407,6 +416,7 @@ public final class TS3Client {
                 guard let id = clientId(e["clid"]), let cgid = e.uint64("cgid") else { continue }
                 clients[id]?.channelGroupId = cgid
                 if isReady, let who = clients[id]?.nickname {
+                    if id == ownClientId && byUser(e) { onEvent?(.channelGroupChanged) }
                     event("Channel group \(group: channelGroups[cgid]?.name ?? "?") was assigned to \(client: who)\(by(e))")
                 }
             }
@@ -433,6 +443,7 @@ public final class TS3Client {
                 } else if isReady && !cl.isQuery && (e.int("reasonid") ?? 0) == 0 {
                     event("\(client: cl.nickname) connected to channel \(channel: channelName(cl.channelId))")
                     if cl.channelId == ownClient?.channelId {
+                        onEvent?(.userConnected)
                         add(ChatMessage(event: "\(client: cl.nickname) connected"), to: .channel, countsAsUnread: false)
                     }
                 }
@@ -444,6 +455,11 @@ public final class TS3Client {
                 let message = e["reasonmsg"].flatMap { $0.isEmpty ? nil : $0 }
                 if id == ownClientId {
                     removalReason = reason
+                    switch reason {
+                    case 5: onEvent?(.youWereKickedFromServer)
+                    case 6: onEvent?(.youWereBanned)
+                    default: onEvent?(.disconnected)
+                    }
                     switch reason {
                     case 5: event("You were kicked from the server\(by(e))\(suffix(message))", tone: .negative)
                     case 6: event("You were banned from the server\(by(e))\(suffix(message))", tone: .negative)
@@ -470,6 +486,12 @@ public final class TS3Client {
                 }
                 if cl.channelId == ownClient?.channelId {
                     add(ChatMessage(event: "\(client: who) left the server"), to: .channel, countsAsUnread: false)
+                    switch reason {
+                    case 3: onEvent?(.userLostConnection)
+                    case 5: onEvent?(.userKickedFromServer)
+                    case 6: onEvent?(.userBanned)
+                    default: onEvent?(.userDisconnected)
+                    }
                 }
             }
         case "notifyclientmoved":
@@ -491,10 +513,21 @@ public final class TS3Client {
                 if isSelf {
                     ownChannelChanged()
                     add(ChatMessage(event: "You are now in \(channel: target)"), to: .channel, countsAsUnread: false)
+                    switch reason {
+                    case 1: onEvent?(.youWereMoved)
+                    case 4: onEvent?(.youWereKickedFromChannel)
+                    default: onEvent?(.channelSwitched)
+                    }
                 } else if to == ownClient?.channelId {
                     add(ChatMessage(event: "\(client: who) joined the channel"), to: .channel, countsAsUnread: false)
+                    onEvent?(reason == 0 ? .userJoinedChannel : .userMovedIn)
                 } else if from == ownClient?.channelId {
                     add(ChatMessage(event: "\(client: who) left to \(channel: target)"), to: .channel, countsAsUnread: false)
+                    switch reason {
+                    case 1: onEvent?(.userMovedOut)
+                    case 4: onEvent?(.userKickedFromChannel)
+                    default: onEvent?(.userLeftChannel)
+                    }
                 }
             }
         case "notifyconnectioninfo":
@@ -505,7 +538,15 @@ public final class TS3Client {
         case "notifyclientupdated":
             for e in c.entries {
                 guard let id = clientId(e["clid"]) else { continue }
+                let before = clients[id]
                 clients[id]?.apply(e)
+                if isReady, let before, let after = clients[id] {
+                    if id == ownClientId, before.isTalker != after.isTalker {
+                        onEvent?(after.isTalker ? .talkPowerGranted : .talkPowerRevoked)
+                    } else if id != ownClientId, after.channelId == ownClient?.channelId, before.isRecording != after.isRecording {
+                        onEvent?(after.isRecording ? .userStartedRecording : .userStoppedRecording)
+                    }
+                }
                 if let cl = clients[id], let index = privateChats.firstIndex(where: { $0.uid == cl.uid }) {
                     privateChats[index].nickname = cl.nickname
                 }
@@ -518,6 +559,7 @@ public final class TS3Client {
             poke.tone = .negative
             add(poke, to: .server)
             onIncomingMessage?(poke, .server)
+            onEvent?(.youWerePoked)
         case "error":
             let a = c.first
             let id = a.int("id") ?? 0
@@ -528,6 +570,7 @@ public final class TS3Client {
                     cont.resume()
                 } else {
                     let error = TS3Error.server(id: id, message: a["msg"] ?? "", extra: a["extra_msg"])
+                    onEvent?(id == 2568 ? .insufficientPermissions : .error)
                     add(ChatMessage(event: "\(error.localizedDescription)", tone: .negative, kind: .error), to: .server)
                     cont.resume(throwing: error)
                 }
@@ -552,12 +595,15 @@ public final class TS3Client {
             ensurePrivateChat(uid: other.uid, nickname: other.nickname, clientId: other.id)
             add(message, to: .client(uid: other.uid))
             if !isOwn { onIncomingMessage?(message, .client(uid: other.uid)) }
+            onEvent?(isOwn ? .messageSent : .messageReceived)
         case 2:
             add(message, to: .channel)
             if !isOwn { onIncomingMessage?(message, .channel) }
+            onEvent?(isOwn ? .messageSent : .messageReceived)
         default:
             add(message, to: .server)
             if !isOwn { onIncomingMessage?(message, .server) }
+            onEvent?(isOwn ? .messageSent : .messageReceived)
         }
     }
 
@@ -597,6 +643,11 @@ public final class TS3Client {
     private func by(_ e: [String: String]) -> EventText {
         guard let name = e["invokername"], !name.isEmpty else { return "" }
         return (e.int("invokerid") ?? 0) == 0 && name == server.name ? " by \(server: name)" : " by \(client: name)"
+    }
+
+    /// Group changes made by a person (the official pack is silent for the server's automatic ones).
+    private func byUser(_ e: [String: String]) -> Bool {
+        (e.int("invokerid") ?? 0) != 0
     }
 
     private func suffix(_ message: String?) -> EventText {

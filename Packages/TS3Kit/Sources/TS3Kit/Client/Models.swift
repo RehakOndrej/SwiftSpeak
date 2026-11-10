@@ -219,3 +219,21 @@ public struct PrivateChat: Identifiable, Hashable, Sendable {
     /// Current client id, nil while the other side is not on the server.
     public var clientId: UInt16?
 }
+
+/// Things worth a sound (the official client's sound pack events, minus those this client has no feature for).
+/// "User" events only fire for other people in your channel.
+public enum ClientEvent: String, CaseIterable, Sendable {
+    // Connection
+    case connected, disconnected, connectionLost
+    // You
+    case channelSwitched, youWereMoved, youWereKickedFromChannel, youWereKickedFromServer, youWereBanned, youWerePoked
+    case talkPowerGranted, talkPowerRevoked, serverGroupAssigned, serverGroupRevoked, channelGroupChanged
+    case insufficientPermissions, error
+    // Other users in your channel
+    case userConnected, userDisconnected, userLostConnection
+    case userJoinedChannel, userLeftChannel, userMovedIn, userMovedOut
+    case userKickedFromChannel, userKickedFromServer, userBanned
+    case userStartedRecording, userStoppedRecording
+    // Chat
+    case messageReceived, messageSent
+}

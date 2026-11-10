@@ -75,6 +75,14 @@ final class AppModel {
     @ObservationIgnored private var pushToTalkPressed = false
     @ObservationIgnored private var shortcutsHeld: Set<Shortcuts.Action> = []
     @ObservationIgnored private let notifier = Notifier()
+    @ObservationIgnored private(set) lazy var soundPack = SoundPack(voice: voice)
+    /// Spoken notifications ("Connected", "User joined your channel", …).
+    var soundsEnabled = Storage.soundsEnabled {
+        didSet {
+            Storage.soundsEnabled = soundsEnabled
+            soundPack.isEnabled = soundsEnabled
+        }
+    }
 
     // Reconnect bookkeeping
     @ObservationIgnored private var lastOptions: ConnectOptions?
@@ -158,9 +166,13 @@ final class AppModel {
             self.voice.setTransmitEnabled(false)
             if self.shouldReconnect {
                 self.scheduleReconnect()
-            } else if self.settingsAudioUsers == 0 && self.reconnect == nil {
-                self.voice.stop()
+            } else {
+                self.stopAudioWhenIdle()
             }
+        }
+        soundPack.isEnabled = soundsEnabled
+        client.onEvent = { [weak self] event in
+            self?.soundPack.play(event)
         }
         client.onIncomingMessage = { [weak self] message, target in
             self?.notifier.notify(message, target: target)
@@ -221,7 +233,7 @@ final class AppModel {
         userDisconnected = true
         cancelReconnect()
         client.disconnect()
-        if client.status != .connected && client.status != .connecting && settingsAudioUsers == 0 { voice.stop() }
+        stopAudioWhenIdle()
     }
 
     // MARK: - Reconnect
@@ -278,7 +290,7 @@ final class AppModel {
         reconnectTask = nil
         if reconnect != nil {
             reconnect = nil
-            if client.status != .connected && client.status != .connecting && settingsAudioUsers == 0 { voice.stop() }
+            stopAudioWhenIdle()
         }
     }
 
@@ -339,7 +351,20 @@ final class AppModel {
         settingsAudioUsers = max(0, settingsAudioUsers - 1)
         guard settingsAudioUsers == 0 else { return }
         isTestingCapture = false
-        if client.status != .connected && client.status != .connecting { voice.stop() }
+        stopAudioWhenIdle()
+    }
+
+    /// Stops audio once nothing needs it, letting a sound that's still playing ("Disconnected") finish first.
+    private func stopAudioWhenIdle() {
+        Task { [weak self] in
+            for _ in 0..<40 { // at most 4 s
+                guard let self, self.voice.isPlayingEffects else { break }
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            guard let self, self.client.status != .connected, self.client.status != .connecting,
+                  self.settingsAudioUsers == 0, self.reconnect == nil else { return }
+            self.voice.stop()
+        }
     }
 
     func refreshAccessibility() {
@@ -357,6 +382,7 @@ final class AppModel {
         // Unmuting by hand while away keeps it unmuted on return.
         micMutedBeforeAway = nil
         setMicMuted(!micMuted)
+        soundPack.play(micMuted ? .micMuted : .micActivated)
     }
 
     private func setMicMuted(_ muted: Bool) {
@@ -369,6 +395,7 @@ final class AppModel {
     func toggleOutput() {
         outputMuted.toggle()
         voice.setOutputMuted(outputMuted)
+        soundPack.play(outputMuted ? .soundMuted : .soundResumed)
         sync { try await $0.setOutputMuted(self.outputMuted) }
     }
 
@@ -386,6 +413,7 @@ final class AppModel {
             micMutedBeforeAway = nil
             setMicMuted(before)
         }
+        soundPack.play(away ? .awayActivated : .awayDeactivated)
         let message = awayMessage
         sync { try await $0.setAway(away, message: message) }
     }

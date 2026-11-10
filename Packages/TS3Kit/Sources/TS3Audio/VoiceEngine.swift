@@ -281,6 +281,11 @@ public final class VoiceEngine: @unchecked Sendable {
         }
     }
 
+    /// Whether a sound effect is still playing (so audio isn't stopped mid-sound).
+    public var isPlayingEffects: Bool {
+        playback.withLock { $0.effects.contains { $0.index < $0.samples.count } }
+    }
+
     public func playTestSound() {
         let a = Self.tone(frequency: 880, duration: 0.18, amplitude: 0.5)
         let b = Self.tone(frequency: 1_320, duration: 0.3, amplitude: 0.5)
