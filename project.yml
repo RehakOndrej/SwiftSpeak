@@ -1,0 +1,51 @@
+name: TS3Client
+options:
+  bundleIdPrefix: dev.personal
+  deploymentTarget:
+    macOS: "27.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "27.0"
+packages:
+  TS3Kit:
+    path: Packages/TS3Kit
+targets:
+  TS3Client:
+    type: application
+    platform: macOS
+    sources:
+      - path: App/Sources
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: TS3 Client
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSApplicationCategoryType: public.app-category.social-networking
+        NSMicrophoneUsageDescription: TS3 Client sends your voice to the TeamSpeak channel you are in.
+    entitlements:
+      path: App/TS3Client.entitlements
+      properties:
+        com.apple.security.device.audio-input: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.personal.ts3-client
+        PRODUCT_NAME: TS3 Client
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        ENABLE_HARDENED_RUNTIME: YES
+        GENERATE_INFOPLIST_FILE: NO
+    dependencies:
+      - package: TS3Kit
+        product: TS3Kit
+      - package: TS3Kit
+        product: TS3Audio
+schemes:
+  TS3Client:
+    build:
+      targets:
+        TS3Client: all
+    run:
+      config: Debug

@@ -1,0 +1,397 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		268960AFEDC48FC99B6D488F /* Storage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6146D4FD2328C55D28B5424 /* Storage.swift */; };
+		2768DCEAD5F4D1905CC14D3B /* Hotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C562BF2C264F7C6B67F2A3A /* Hotkey.swift */; };
+		29EEDC1F652D746C2B63D63C /* SplitPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CE826017304E2595558BA76 /* SplitPane.swift */; };
+		3F1C380CE7F5398276D1867F /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6097460256FDFAED872C0B2 /* MainView.swift */; };
+		497E5AAC0DA825B74C9D04BD /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74F0AB2719FFDA89E8EFB870 /* AppModel.swift */; };
+		59B8BB6178F848BD40E1A5E5 /* TS3Kit in Frameworks */ = {isa = PBXBuildFile; productRef = FD765E88A642049D4C725AB5 /* TS3Kit */; };
+		67110B4BDE7F0C9947612B7A /* ConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86B214DF87D7821164958832 /* ConnectView.swift */; };
+		744546A40DF6196AE7929DDD /* TS3Audio in Frameworks */ = {isa = PBXBuildFile; productRef = 33DB5C2A3CD13E01C241B35E /* TS3Audio */; };
+		8200AF041AE7ADD961F7A3DF /* InfoPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 400AACEA84DDED2D574B9B70 /* InfoPanel.swift */; };
+		842C4214D741666C1AD9054C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02EB635DFDE570D1953ECDE8 /* SettingsView.swift */; };
+		89BCDEE4B644B058C433341B /* TS3ClientApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17A610F311FB34B2FB28295 /* TS3ClientApp.swift */; };
+		9BEA51A3C9AAC54943C563B2 /* ChatPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D2F6FFDE374361960677C02 /* ChatPanel.swift */; };
+		CE40D2721F5EBB2C6056DE16 /* ServerTreeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D52737BD53F46C701B9AA133 /* ServerTreeView.swift */; };
+		D41A088A908BB472B45C5F40 /* BBCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3933394BF6ADA29885CA66F /* BBCode.swift */; };
+		F945D5A6400D9AD1A1161D8B /* AudioPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A1D8A4172BEDA1DB2A62130 /* AudioPanel.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		02EB635DFDE570D1953ECDE8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		18909594808F78DA14EF8974 /* TS3Client.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TS3Client.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1CE826017304E2595558BA76 /* SplitPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitPane.swift; sourceTree = "<group>"; };
+		3D2F6FFDE374361960677C02 /* ChatPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPanel.swift; sourceTree = "<group>"; };
+		400AACEA84DDED2D574B9B70 /* InfoPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoPanel.swift; sourceTree = "<group>"; };
+		66EC84B75080967077906130 /* TS3Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TS3Kit; path = Packages/TS3Kit; sourceTree = SOURCE_ROOT; };
+		6A1D8A4172BEDA1DB2A62130 /* AudioPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPanel.swift; sourceTree = "<group>"; };
+		74F0AB2719FFDA89E8EFB870 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		86B214DF87D7821164958832 /* ConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectView.swift; sourceTree = "<group>"; };
+		8C562BF2C264F7C6B67F2A3A /* Hotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hotkey.swift; sourceTree = "<group>"; };
+		C17A610F311FB34B2FB28295 /* TS3ClientApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TS3ClientApp.swift; sourceTree = "<group>"; };
+		D3933394BF6ADA29885CA66F /* BBCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BBCode.swift; sourceTree = "<group>"; };
+		D52737BD53F46C701B9AA133 /* ServerTreeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerTreeView.swift; sourceTree = "<group>"; };
+		F6097460256FDFAED872C0B2 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		F6146D4FD2328C55D28B5424 /* Storage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Storage.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2BB3CDD7C9656DF83F96979B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59B8BB6178F848BD40E1A5E5 /* TS3Kit in Frameworks */,
+				744546A40DF6196AE7929DDD /* TS3Audio in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		5473A7DD05ECC6AF98AEFF8D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				18909594808F78DA14EF8974 /* TS3Client.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		5B51DD7AC633352EA9E24730 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A771E80FBF4FAE529F8C17DA /* Sources */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		85DD37977D3680A45106D86A /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				66EC84B75080967077906130 /* TS3Kit */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+		A771E80FBF4FAE529F8C17DA /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				74F0AB2719FFDA89E8EFB870 /* AppModel.swift */,
+				6A1D8A4172BEDA1DB2A62130 /* AudioPanel.swift */,
+				D3933394BF6ADA29885CA66F /* BBCode.swift */,
+				3D2F6FFDE374361960677C02 /* ChatPanel.swift */,
+				86B214DF87D7821164958832 /* ConnectView.swift */,
+				8C562BF2C264F7C6B67F2A3A /* Hotkey.swift */,
+				400AACEA84DDED2D574B9B70 /* InfoPanel.swift */,
+				F6097460256FDFAED872C0B2 /* MainView.swift */,
+				D52737BD53F46C701B9AA133 /* ServerTreeView.swift */,
+				02EB635DFDE570D1953ECDE8 /* SettingsView.swift */,
+				1CE826017304E2595558BA76 /* SplitPane.swift */,
+				F6146D4FD2328C55D28B5424 /* Storage.swift */,
+				C17A610F311FB34B2FB28295 /* TS3ClientApp.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		BAEFBE85D8EBC05D2B40BA7E = {
+			isa = PBXGroup;
+			children = (
+				5B51DD7AC633352EA9E24730 /* App */,
+				85DD37977D3680A45106D86A /* Packages */,
+				5473A7DD05ECC6AF98AEFF8D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A0D78C15B85A83429E6BF9BA /* TS3Client */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FB79E33C49BE54C83DF1B295 /* Build configuration list for PBXNativeTarget "TS3Client" */;
+			buildPhases = (
+				3B84FD085C3155BB1E2CE77E /* Sources */,
+				2BB3CDD7C9656DF83F96979B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TS3Client;
+			packageProductDependencies = (
+				FD765E88A642049D4C725AB5 /* TS3Kit */,
+				33DB5C2A3CD13E01C241B35E /* TS3Audio */,
+			);
+			productName = TS3Client;
+			productReference = 18909594808F78DA14EF8974 /* TS3Client.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C5C91536695EBFF89BA829BE /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					A0D78C15B85A83429E6BF9BA = {
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = A68A4C98B0ED0DF742ED6FE4 /* Build configuration list for PBXProject "TS3Client" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = BAEFBE85D8EBC05D2B40BA7E;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				458C074CD5C4EB3346DC08DB /* XCLocalSwiftPackageReference "Packages/TS3Kit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5473A7DD05ECC6AF98AEFF8D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A0D78C15B85A83429E6BF9BA /* TS3Client */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3B84FD085C3155BB1E2CE77E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				497E5AAC0DA825B74C9D04BD /* AppModel.swift in Sources */,
+				F945D5A6400D9AD1A1161D8B /* AudioPanel.swift in Sources */,
+				D41A088A908BB472B45C5F40 /* BBCode.swift in Sources */,
+				9BEA51A3C9AAC54943C563B2 /* ChatPanel.swift in Sources */,
+				67110B4BDE7F0C9947612B7A /* ConnectView.swift in Sources */,
+				2768DCEAD5F4D1905CC14D3B /* Hotkey.swift in Sources */,
+				8200AF041AE7ADD961F7A3DF /* InfoPanel.swift in Sources */,
+				3F1C380CE7F5398276D1867F /* MainView.swift in Sources */,
+				CE40D2721F5EBB2C6056DE16 /* ServerTreeView.swift in Sources */,
+				842C4214D741666C1AD9054C /* SettingsView.swift in Sources */,
+				29EEDC1F652D746C2B63D63C /* SplitPane.swift in Sources */,
+				268960AFEDC48FC99B6D488F /* Storage.swift in Sources */,
+				89BCDEE4B644B058C433341B /* TS3ClientApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		4B569ACBDC8F9D7FF4B0A9FA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		5E7B31128EB803CA5A866F5A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		C8EDFA1A1632CA6384DA69D3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/TS3Client.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "dev.personal.ts3-client";
+				PRODUCT_NAME = "TS3 Client";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		F22CBE9A1B2BF7B087A14EFE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/TS3Client.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "dev.personal.ts3-client";
+				PRODUCT_NAME = "TS3 Client";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A68A4C98B0ED0DF742ED6FE4 /* Build configuration list for PBXProject "TS3Client" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4B569ACBDC8F9D7FF4B0A9FA /* Debug */,
+				5E7B31128EB803CA5A866F5A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		FB79E33C49BE54C83DF1B295 /* Build configuration list for PBXNativeTarget "TS3Client" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F22CBE9A1B2BF7B087A14EFE /* Debug */,
+				C8EDFA1A1632CA6384DA69D3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		458C074CD5C4EB3346DC08DB /* XCLocalSwiftPackageReference "Packages/TS3Kit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/TS3Kit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		33DB5C2A3CD13E01C241B35E /* TS3Audio */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TS3Audio;
+		};
+		FD765E88A642049D4C725AB5 /* TS3Kit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TS3Kit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = C5C91536695EBFF89BA829BE /* Project object */;
+}
