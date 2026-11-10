@@ -32,13 +32,19 @@ targets:
       path: App/TS3Client.entitlements
       properties:
         com.apple.security.device.audio-input: true
+    # Signing identity: ad-hoc unless Config/Local.xcconfig names a certificate.
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.personal.ts3-client
         PRODUCT_NAME: TS3 Client
-        CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: Manual
         ENABLE_HARDENED_RUNTIME: YES
+        # One binary, no separate debug library: with a self-signed certificate (no Apple team ID)
+        # the hardened runtime refuses to load it and the app dies at launch.
+        ENABLE_DEBUG_DYLIB: NO
         GENERATE_INFOPLIST_FILE: NO
     dependencies:
       - package: TS3Kit

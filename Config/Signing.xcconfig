@@ -1,0 +1,5 @@
+// Ad-hoc signing by default, so the project builds anywhere without setup.
+// Scripts/make-signing-certificate.sh writes Local.xcconfig to sign with a certificate of your own,
+// which keeps macOS permissions (Accessibility, microphone) across rebuilds.
+CODE_SIGN_IDENTITY = -
+#include? "Local.xcconfig"

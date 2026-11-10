@@ -45,6 +45,7 @@
 
 /* Begin PBXFileReference section */
 		02EB635DFDE570D1953ECDE8 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		105B23AF412D950032BFFD4C /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		18909594808F78DA14EF8974 /* TS3Client.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TS3Client.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A68A1C503C8674A0E0B3FEB /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		1CE826017304E2595558BA76 /* SplitPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitPane.swift; sourceTree = "<group>"; };
@@ -176,9 +177,18 @@
 			isa = PBXGroup;
 			children = (
 				5B51DD7AC633352EA9E24730 /* App */,
+				E3FB9A3AB67C3CD2A6CFF5D7 /* Config */,
 				85DD37977D3680A45106D86A /* Packages */,
 				5473A7DD05ECC6AF98AEFF8D /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		E3FB9A3AB67C3CD2A6CFF5D7 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				105B23AF412D950032BFFD4C /* Signing.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -415,12 +425,13 @@
 		};
 		C8EDFA1A1632CA6384DA69D3 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 105B23AF412D950032BFFD4C /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/TS3Client.entitlements;
-				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -436,12 +447,13 @@
 		};
 		F22CBE9A1B2BF7B087A14EFE /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 105B23AF412D950032BFFD4C /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/TS3Client.entitlements;
-				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
