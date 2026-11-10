@@ -392,6 +392,8 @@ public final class Connection: @unchecked Sendable {
     // MARK: - Sending
 
     private func sendCommand(_ text: String, type: PacketType) {
+        // Names only (never arguments), with the packet id, to follow a command through the log.
+        debug("→ \(text.prefix { $0 != " " }) #\(outIds[Int(type.rawValue)])")
         let data = Array(text.utf8)
         let maxPayload = Packet.maxSize - Packet.c2sHeaderLength
         var chunks: [[UInt8]] = []
@@ -498,7 +500,9 @@ public final class Connection: @unchecked Sendable {
             guard packet.payload.count >= 2 else { return }
             let acked = packet.payload.readU16(0)
             let forType: PacketType = packet.type == .ack ? .command : .commandLow
-            if outbox.removeValue(forKey: OutKey(type: forType.rawValue, id: acked)) != nil {
+            if let sent = outbox.removeValue(forKey: OutKey(type: forType.rawValue, id: acked)) {
+                let ms = Int(Date().timeIntervalSince(sent.firstSent) * 1000)
+                debug("ack #\(acked) after \(ms) ms\(sent.lastSent != sent.firstSent ? " (resent)" : "")")
                 if phase == .awaitClientEkAck && forType == .command && acked == 1 {
                     sendClientInit()
                 } else if phase == .disconnecting && outbox.isEmpty {
@@ -573,6 +577,7 @@ public final class Connection: @unchecked Sendable {
         }
         let text = String(decoding: bytes, as: UTF8.self)
         let command = Command.parse(text)
+        debug("← \(command.name)")
         switch command.name {
         case "initivexpand2":
             debug("← initivexpand2")

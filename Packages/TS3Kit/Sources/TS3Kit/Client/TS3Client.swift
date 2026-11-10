@@ -1,3 +1,4 @@
+import os
 import Foundation
 import Observation
 import Synchronization
@@ -30,6 +31,7 @@ public final class TS3Client {
     public private(set) var wasConnected = false
     /// Why the server removed us (`reasonid`: 5 kicked, 6 banned, 7/11 shutdown); nil otherwise.
     public private(set) var removalReason: Int?
+    private static let logger = Logger(subsystem: "TS3Kit", category: "client")
     /// The "disconnected" event was already sent when the user chose to leave.
     @ObservationIgnored private var announcedDisconnect = false
 
@@ -343,6 +345,7 @@ public final class TS3Client {
     }
 
     private func handle(_ c: Command) {
+        Self.logger.debug("handling \(c.name, privacy: .public)")
         switch c.name {
         case "initserver":
             let a = c.first

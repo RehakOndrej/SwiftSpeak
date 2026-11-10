@@ -1,3 +1,4 @@
+import os
 import AppKit
 import ApplicationServices
 import AVFoundation
@@ -11,6 +12,7 @@ import TS3Kit
 final class AppModel {
     let client = TS3Client()
     @ObservationIgnored let voice = VoiceEngine()
+    private static let logger = Logger(subsystem: "TS3Kit", category: "app")
 
     var audioSettings: AudioSettings {
         didSet {
@@ -532,6 +534,7 @@ final class AppModel {
 
     func join(_ channel: ChannelInfo, password: String = "") {
         if !password.isEmpty { channelPasswords[channel.id] = password }
+        Self.logger.debug("join requested")
         sync { try await $0.join(channel: channel.id, password: password) }
     }
 

@@ -1,4 +1,5 @@
 @preconcurrency import AVFoundation
+import os
 import AppKit
 import TS3Audio
 import TS3Kit
@@ -21,6 +22,7 @@ final class SoundPack {
     nonisolated static let fileExtensions = ["mp3", "wav", "m4a", "aiff", "aif", "caf"]
     static let allNames: [String] = ClientEvent.allCases.map(\.soundName) + LocalEvent.allCases.map(\.rawValue)
 
+    private static let logger = Logger(subsystem: "TS3Kit", category: "sound")
     var isEnabled = true
     /// Called after the pack had to start the speakers itself (audio was off), so they can be stopped later.
     var onStartedPlayback: (() -> Void)?
@@ -37,6 +39,7 @@ final class SoundPack {
 
     func play(name: String) {
         guard isEnabled else { return }
+        Self.logger.debug("play \(name, privacy: .public)")
         let samples = sound(named: name)
         guard !samples.isEmpty else { return }
         // Queued first: if audio is just starting (as when connecting), the sound plays the moment
