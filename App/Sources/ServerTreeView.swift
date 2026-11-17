@@ -77,7 +77,7 @@ struct ServerTreeView: View {
     }
 
     /// Drag payload for a client row.
-    private static let dragPrefix = "ts3-client:"
+    private static let dragPrefix = "swiftspeak:"
 
     private func drop(_ items: [String], on channel: ChannelInfo) -> Bool {
         guard !channel.isSpacer,

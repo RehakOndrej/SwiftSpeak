@@ -6,3 +6,10 @@ xcuserdata/
 *.xcuserstate
 .DS_Store
 Config/Local.xcconfig
+# Never commit signing material or local secrets
+*.p12
+*.pem
+*.cer
+*.key
+.env
+secrets.json

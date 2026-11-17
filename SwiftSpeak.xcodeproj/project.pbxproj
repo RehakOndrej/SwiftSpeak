@@ -1,0 +1,516 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		152F2E386039886CEE6F75AA /* BBCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = F87A9324E808A4A2F7B3A0F1 /* BBCode.swift */; };
+		202CA4468D771F0D9BA18624 /* you_were_poked.wav in Resources */ = {isa = PBXBuildFile; fileRef = 3ABEA783B2C9891D9B107F61 /* you_were_poked.wav */; };
+		22DF5290858B976159E3C2EB /* you_were_banned.wav in Resources */ = {isa = PBXBuildFile; fileRef = B561FBDD24FD9D50B4E549EA /* you_were_banned.wav */; };
+		25AD549EA2D1068184656FF9 /* ConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A39DA7C0298E1771471DB14 /* ConnectView.swift */; };
+		2FB681C39602F1E5ECDF0ECC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09078DA8393B8DC3C5A3CDEA /* SettingsView.swift */; };
+		334A52BECFF6AD7A74D866BF /* SoundPack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FFC62FF1D2B1274DF306FA4 /* SoundPack.swift */; };
+		38D71067E93A46894910043E /* TS3Kit in Frameworks */ = {isa = PBXBuildFile; productRef = FF660B5A462EDB4DD437DE9B /* TS3Kit */; };
+		3E9DB3D669E3E59995BBE481 /* AudioPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 657C578EAC57BD6438D06942 /* AudioPanel.swift */; };
+		4068E09B5F2555C938FF5735 /* Storage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DB5CA3E086594D6C9F2C436 /* Storage.swift */; };
+		4C8D7F6FC6E4FCB7B5FEF412 /* SplitPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 772ECA803DB91EBF76038C72 /* SplitPane.swift */; };
+		5DF0FDCC614F8FB7942BAADA /* away_activated.wav in Resources */ = {isa = PBXBuildFile; fileRef = 981544AF10695883B9F63605 /* away_activated.wav */; };
+		5FEAD7A57E0F4C669B2A0BCE /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9369010A70F20CAC8BF0931C /* AppModel.swift */; };
+		665EC61BCDD6873AC2CCC4CF /* Sheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5158C4802B4D5FF4FE5C0326 /* Sheets.swift */; };
+		66A099FAC6869607E34945C8 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C139E458B721EF217DFFB7B8 /* MainView.swift */; };
+		6B6905872E81048ACE6CE5FE /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C037DC50DE10E14833ACB84 /* Preferences.swift */; };
+		7B13481A6D60856EECF3627F /* you_kicked_channel.wav in Resources */ = {isa = PBXBuildFile; fileRef = 69C2EB589CF87CE5F4294261 /* you_kicked_channel.wav */; };
+		7D1B2C3AF9315EFEADA05EAE /* connected.wav in Resources */ = {isa = PBXBuildFile; fileRef = CE731343FF19A5341BB7D466 /* connected.wav */; };
+		890E604C7859C253C8E0588E /* InfoPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C9AD9532005943938A0FA3 /* InfoPanel.swift */; };
+		94AC76136D7C10FB66575C91 /* away_deactivated.wav in Resources */ = {isa = PBXBuildFile; fileRef = E78A2EA858CCFDC08A282A87 /* away_deactivated.wav */; };
+		96F56EA2DE43C51C73B50467 /* Notifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8016162C9DAC1AF41F9D46A /* Notifier.swift */; };
+		97ACA8C9D4F643592111F22C /* GlobalInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8351D84D7F1E7D877D060B1D /* GlobalInput.swift */; };
+		98D27D8A60D914729050FE9F /* sound_resumed.wav in Resources */ = {isa = PBXBuildFile; fileRef = 41519D9FF4F4C420BA966C06 /* sound_resumed.wav */; };
+		995C3A2E198E3071EDCCBD3F /* mic_muted.wav in Resources */ = {isa = PBXBuildFile; fileRef = E0970C023EE907468BCF3F39 /* mic_muted.wav */; };
+		AD440B56CB9C096563C38432 /* channel_switched.wav in Resources */ = {isa = PBXBuildFile; fileRef = DE99B6746788720B877566C4 /* channel_switched.wav */; };
+		B9126A581EFB23DCED718FD5 /* disconnected.wav in Resources */ = {isa = PBXBuildFile; fileRef = D5DFEF9C3C641024B0BBA02F /* disconnected.wav */; };
+		BCD02E60442BC18C17673DB0 /* TS3Audio in Frameworks */ = {isa = PBXBuildFile; productRef = 2D2ABA8D67A6C548A7BD7B5D /* TS3Audio */; };
+		CEF8A96D640059EDCE8FBBC2 /* connection_lost.wav in Resources */ = {isa = PBXBuildFile; fileRef = 3AAD081CF8CF52C287C9D1A6 /* connection_lost.wav */; };
+		D787A22DB1E160B413D1A11F /* sound_muted.wav in Resources */ = {isa = PBXBuildFile; fileRef = 8ED2D824EE43FAD5BBDF2623 /* sound_muted.wav */; };
+		EB762C85781DEC8B9826FAFC /* you_kicked_server.wav in Resources */ = {isa = PBXBuildFile; fileRef = 0D6AFE4063DE52E10BD05A9D /* you_kicked_server.wav */; };
+		EBAEFFE3AC9C913232192F38 /* ServerTreeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00E7D6F92EFFD725252368EF /* ServerTreeView.swift */; };
+		F403030417061E70FD6864BF /* you_were_moved.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1E2826C0CB6892E3B98E318B /* you_were_moved.wav */; };
+		F5A6B6860F5A172FFB182B04 /* Hotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406C2DC9C4B5C1DEC01FDF3B /* Hotkey.swift */; };
+		F7DA54DA77C53D4B65F48E81 /* SwiftSpeakApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97E3BD1A490BF873FC17E682 /* SwiftSpeakApp.swift */; };
+		FDFF74C2C53CDBE9B265D72F /* ChatPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 375B76C09CFB964F60B8167A /* ChatPanel.swift */; };
+		FE90ED02DB612A27F8CFE040 /* mic_activated.wav in Resources */ = {isa = PBXBuildFile; fileRef = 273F34D57EDB470B63A37988 /* mic_activated.wav */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		00E7D6F92EFFD725252368EF /* ServerTreeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerTreeView.swift; sourceTree = "<group>"; };
+		09078DA8393B8DC3C5A3CDEA /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		0D6AFE4063DE52E10BD05A9D /* you_kicked_server.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = you_kicked_server.wav; sourceTree = "<group>"; };
+		1DB5CA3E086594D6C9F2C436 /* Storage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Storage.swift; sourceTree = "<group>"; };
+		1E2826C0CB6892E3B98E318B /* you_were_moved.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = you_were_moved.wav; sourceTree = "<group>"; };
+		273F34D57EDB470B63A37988 /* mic_activated.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = mic_activated.wav; sourceTree = "<group>"; };
+		3469252EE9AE417BA2FC0277 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		375B76C09CFB964F60B8167A /* ChatPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPanel.swift; sourceTree = "<group>"; };
+		3AAD081CF8CF52C287C9D1A6 /* connection_lost.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = connection_lost.wav; sourceTree = "<group>"; };
+		3ABEA783B2C9891D9B107F61 /* you_were_poked.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = you_were_poked.wav; sourceTree = "<group>"; };
+		406C2DC9C4B5C1DEC01FDF3B /* Hotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hotkey.swift; sourceTree = "<group>"; };
+		41519D9FF4F4C420BA966C06 /* sound_resumed.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_resumed.wav; sourceTree = "<group>"; };
+		5158C4802B4D5FF4FE5C0326 /* Sheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sheets.swift; sourceTree = "<group>"; };
+		5E14E0CEFEAE9F96DEF76B86 /* TS3Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TS3Kit; path = Packages/TS3Kit; sourceTree = SOURCE_ROOT; };
+		5E697331142A39CDADCFB4BB /* SwiftSpeak.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftSpeak.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		657C578EAC57BD6438D06942 /* AudioPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPanel.swift; sourceTree = "<group>"; };
+		69C2EB589CF87CE5F4294261 /* you_kicked_channel.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = you_kicked_channel.wav; sourceTree = "<group>"; };
+		6A39DA7C0298E1771471DB14 /* ConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectView.swift; sourceTree = "<group>"; };
+		772ECA803DB91EBF76038C72 /* SplitPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplitPane.swift; sourceTree = "<group>"; };
+		7FFC62FF1D2B1274DF306FA4 /* SoundPack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPack.swift; sourceTree = "<group>"; };
+		8351D84D7F1E7D877D060B1D /* GlobalInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalInput.swift; sourceTree = "<group>"; };
+		8ED2D824EE43FAD5BBDF2623 /* sound_muted.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_muted.wav; sourceTree = "<group>"; };
+		91C9AD9532005943938A0FA3 /* InfoPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoPanel.swift; sourceTree = "<group>"; };
+		9369010A70F20CAC8BF0931C /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		97E3BD1A490BF873FC17E682 /* SwiftSpeakApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftSpeakApp.swift; sourceTree = "<group>"; };
+		981544AF10695883B9F63605 /* away_activated.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = away_activated.wav; sourceTree = "<group>"; };
+		9C037DC50DE10E14833ACB84 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
+		B561FBDD24FD9D50B4E549EA /* you_were_banned.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = you_were_banned.wav; sourceTree = "<group>"; };
+		C139E458B721EF217DFFB7B8 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		C8016162C9DAC1AF41F9D46A /* Notifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifier.swift; sourceTree = "<group>"; };
+		CE731343FF19A5341BB7D466 /* connected.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = connected.wav; sourceTree = "<group>"; };
+		D5DFEF9C3C641024B0BBA02F /* disconnected.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = disconnected.wav; sourceTree = "<group>"; };
+		DE99B6746788720B877566C4 /* channel_switched.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = channel_switched.wav; sourceTree = "<group>"; };
+		E0970C023EE907468BCF3F39 /* mic_muted.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = mic_muted.wav; sourceTree = "<group>"; };
+		E78A2EA858CCFDC08A282A87 /* away_deactivated.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = away_deactivated.wav; sourceTree = "<group>"; };
+		F87A9324E808A4A2F7B3A0F1 /* BBCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BBCode.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2188989EDE0229993AAD5C62 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				38D71067E93A46894910043E /* TS3Kit in Frameworks */,
+				BCD02E60442BC18C17673DB0 /* TS3Audio in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		575A47AEC62DE53F480C255E /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				3469252EE9AE417BA2FC0277 /* Signing.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		73097D201C592DFB7C61777F /* Sounds */ = {
+			isa = PBXGroup;
+			children = (
+				981544AF10695883B9F63605 /* away_activated.wav */,
+				E78A2EA858CCFDC08A282A87 /* away_deactivated.wav */,
+				DE99B6746788720B877566C4 /* channel_switched.wav */,
+				CE731343FF19A5341BB7D466 /* connected.wav */,
+				3AAD081CF8CF52C287C9D1A6 /* connection_lost.wav */,
+				D5DFEF9C3C641024B0BBA02F /* disconnected.wav */,
+				273F34D57EDB470B63A37988 /* mic_activated.wav */,
+				E0970C023EE907468BCF3F39 /* mic_muted.wav */,
+				8ED2D824EE43FAD5BBDF2623 /* sound_muted.wav */,
+				41519D9FF4F4C420BA966C06 /* sound_resumed.wav */,
+				69C2EB589CF87CE5F4294261 /* you_kicked_channel.wav */,
+				0D6AFE4063DE52E10BD05A9D /* you_kicked_server.wav */,
+				B561FBDD24FD9D50B4E549EA /* you_were_banned.wav */,
+				1E2826C0CB6892E3B98E318B /* you_were_moved.wav */,
+				3ABEA783B2C9891D9B107F61 /* you_were_poked.wav */,
+			);
+			path = Sounds;
+			sourceTree = "<group>";
+		};
+		922CBECE3BD6EB6D55F5656C /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				9369010A70F20CAC8BF0931C /* AppModel.swift */,
+				657C578EAC57BD6438D06942 /* AudioPanel.swift */,
+				F87A9324E808A4A2F7B3A0F1 /* BBCode.swift */,
+				375B76C09CFB964F60B8167A /* ChatPanel.swift */,
+				6A39DA7C0298E1771471DB14 /* ConnectView.swift */,
+				8351D84D7F1E7D877D060B1D /* GlobalInput.swift */,
+				406C2DC9C4B5C1DEC01FDF3B /* Hotkey.swift */,
+				91C9AD9532005943938A0FA3 /* InfoPanel.swift */,
+				C139E458B721EF217DFFB7B8 /* MainView.swift */,
+				C8016162C9DAC1AF41F9D46A /* Notifier.swift */,
+				9C037DC50DE10E14833ACB84 /* Preferences.swift */,
+				00E7D6F92EFFD725252368EF /* ServerTreeView.swift */,
+				09078DA8393B8DC3C5A3CDEA /* SettingsView.swift */,
+				5158C4802B4D5FF4FE5C0326 /* Sheets.swift */,
+				7FFC62FF1D2B1274DF306FA4 /* SoundPack.swift */,
+				772ECA803DB91EBF76038C72 /* SplitPane.swift */,
+				1DB5CA3E086594D6C9F2C436 /* Storage.swift */,
+				97E3BD1A490BF873FC17E682 /* SwiftSpeakApp.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		99BC506A81409ECC75A6513A = {
+			isa = PBXGroup;
+			children = (
+				A9DEAE0D955C9FBBEE4F810C /* App */,
+				575A47AEC62DE53F480C255E /* Config */,
+				F0333F97EECABEB999A24B46 /* Packages */,
+				E64B41373EF0511BABD5916A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9BDA84656957F0F8D77F3BA5 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				73097D201C592DFB7C61777F /* Sounds */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		A9DEAE0D955C9FBBEE4F810C /* App */ = {
+			isa = PBXGroup;
+			children = (
+				9BDA84656957F0F8D77F3BA5 /* Resources */,
+				922CBECE3BD6EB6D55F5656C /* Sources */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		E64B41373EF0511BABD5916A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5E697331142A39CDADCFB4BB /* SwiftSpeak.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F0333F97EECABEB999A24B46 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				5E14E0CEFEAE9F96DEF76B86 /* TS3Kit */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D0EA6AA630E591AA9AF50C1E /* SwiftSpeak */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BE6DF53E27881A3584A5E09E /* Build configuration list for PBXNativeTarget "SwiftSpeak" */;
+			buildPhases = (
+				842694650C5E6F8F3CE085CE /* Sources */,
+				44C7AE25AF6651E66C7B9B94 /* Resources */,
+				2188989EDE0229993AAD5C62 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SwiftSpeak;
+			packageProductDependencies = (
+				FF660B5A462EDB4DD437DE9B /* TS3Kit */,
+				2D2ABA8D67A6C548A7BD7B5D /* TS3Audio */,
+			);
+			productName = SwiftSpeak;
+			productReference = 5E697331142A39CDADCFB4BB /* SwiftSpeak.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C3530657D29F135B2A10204A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					D0EA6AA630E591AA9AF50C1E = {
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = 3B3347C4B0342ABBB8454B8B /* Build configuration list for PBXProject "SwiftSpeak" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 99BC506A81409ECC75A6513A;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FC8602B64C30D0C3A965630F /* XCLocalSwiftPackageReference "Packages/TS3Kit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E64B41373EF0511BABD5916A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D0EA6AA630E591AA9AF50C1E /* SwiftSpeak */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		44C7AE25AF6651E66C7B9B94 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5DF0FDCC614F8FB7942BAADA /* away_activated.wav in Resources */,
+				94AC76136D7C10FB66575C91 /* away_deactivated.wav in Resources */,
+				AD440B56CB9C096563C38432 /* channel_switched.wav in Resources */,
+				7D1B2C3AF9315EFEADA05EAE /* connected.wav in Resources */,
+				CEF8A96D640059EDCE8FBBC2 /* connection_lost.wav in Resources */,
+				B9126A581EFB23DCED718FD5 /* disconnected.wav in Resources */,
+				FE90ED02DB612A27F8CFE040 /* mic_activated.wav in Resources */,
+				995C3A2E198E3071EDCCBD3F /* mic_muted.wav in Resources */,
+				D787A22DB1E160B413D1A11F /* sound_muted.wav in Resources */,
+				98D27D8A60D914729050FE9F /* sound_resumed.wav in Resources */,
+				7B13481A6D60856EECF3627F /* you_kicked_channel.wav in Resources */,
+				EB762C85781DEC8B9826FAFC /* you_kicked_server.wav in Resources */,
+				22DF5290858B976159E3C2EB /* you_were_banned.wav in Resources */,
+				F403030417061E70FD6864BF /* you_were_moved.wav in Resources */,
+				202CA4468D771F0D9BA18624 /* you_were_poked.wav in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		842694650C5E6F8F3CE085CE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5FEAD7A57E0F4C669B2A0BCE /* AppModel.swift in Sources */,
+				3E9DB3D669E3E59995BBE481 /* AudioPanel.swift in Sources */,
+				152F2E386039886CEE6F75AA /* BBCode.swift in Sources */,
+				FDFF74C2C53CDBE9B265D72F /* ChatPanel.swift in Sources */,
+				25AD549EA2D1068184656FF9 /* ConnectView.swift in Sources */,
+				97ACA8C9D4F643592111F22C /* GlobalInput.swift in Sources */,
+				F5A6B6860F5A172FFB182B04 /* Hotkey.swift in Sources */,
+				890E604C7859C253C8E0588E /* InfoPanel.swift in Sources */,
+				66A099FAC6869607E34945C8 /* MainView.swift in Sources */,
+				96F56EA2DE43C51C73B50467 /* Notifier.swift in Sources */,
+				6B6905872E81048ACE6CE5FE /* Preferences.swift in Sources */,
+				EBAEFFE3AC9C913232192F38 /* ServerTreeView.swift in Sources */,
+				2FB681C39602F1E5ECDF0ECC /* SettingsView.swift in Sources */,
+				665EC61BCDD6873AC2CCC4CF /* Sheets.swift in Sources */,
+				334A52BECFF6AD7A74D866BF /* SoundPack.swift in Sources */,
+				4C8D7F6FC6E4FCB7B5FEF412 /* SplitPane.swift in Sources */,
+				4068E09B5F2555C938FF5735 /* Storage.swift in Sources */,
+				F7DA54DA77C53D4B65F48E81 /* SwiftSpeakApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		4A0B313744A3A788D4158A21 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		B8CE3D1C77BBB122F9F324C5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3469252EE9AE417BA2FC0277 /* Signing.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/SwiftSpeak.entitlements;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_DEBUG_DYLIB = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.personal.swiftspeak;
+				PRODUCT_NAME = SwiftSpeak;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		D785A73E6EA8B34CD7E1583D /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3469252EE9AE417BA2FC0277 /* Signing.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/SwiftSpeak.entitlements;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_DEBUG_DYLIB = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.personal.swiftspeak;
+				PRODUCT_NAME = SwiftSpeak;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		FEBA95CF09FB750C730F9EE5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3B3347C4B0342ABBB8454B8B /* Build configuration list for PBXProject "SwiftSpeak" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FEBA95CF09FB750C730F9EE5 /* Debug */,
+				4A0B313744A3A788D4158A21 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BE6DF53E27881A3584A5E09E /* Build configuration list for PBXNativeTarget "SwiftSpeak" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B8CE3D1C77BBB122F9F324C5 /* Debug */,
+				D785A73E6EA8B34CD7E1583D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		FC8602B64C30D0C3A965630F /* XCLocalSwiftPackageReference "Packages/TS3Kit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/TS3Kit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2D2ABA8D67A6C548A7BD7B5D /* TS3Audio */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TS3Audio;
+		};
+		FF660B5A462EDB4DD437DE9B /* TS3Kit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TS3Kit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = C3530657D29F135B2A10204A /* Project object */;
+}

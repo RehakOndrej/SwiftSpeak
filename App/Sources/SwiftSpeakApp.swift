@@ -2,13 +2,18 @@ import AppKit
 import SwiftUI
 
 @main
-struct TS3ClientApp: App {
+struct SwiftSpeakApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @State private var model = AppModel()
+    @State private var model: AppModel
     @AppStorage("layout.audioPanel") private var showAudioPanel = true
 
+    init() {
+        Storage.migrateFromTS3Client() // before AppModel reads any saved state
+        _model = State(initialValue: AppModel())
+    }
+
     var body: some Scene {
-        Window("TS3 Client", id: "main") {
+        Window("SwiftSpeak", id: "main") {
             MainView()
                 .environment(model)
                 .frame(minWidth: 640, minHeight: 520)

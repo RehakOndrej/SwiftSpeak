@@ -1,4 +1,4 @@
-name: TS3Client
+name: SwiftSpeak
 options:
   bundleIdPrefix: dev.personal
   deploymentTarget:
@@ -12,7 +12,7 @@ packages:
   TS3Kit:
     path: Packages/TS3Kit
 targets:
-  TS3Client:
+  SwiftSpeak:
     type: application
     platform: macOS
     sources:
@@ -23,13 +23,13 @@ targets:
     info:
       path: App/Info.plist
       properties:
-        CFBundleDisplayName: TS3 Client
+        CFBundleDisplayName: SwiftSpeak
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
         LSApplicationCategoryType: public.app-category.social-networking
-        NSMicrophoneUsageDescription: TS3 Client sends your voice to the TeamSpeak channel you are in.
+        NSMicrophoneUsageDescription: SwiftSpeak sends your voice to the TeamSpeak channel you are in.
     entitlements:
-      path: App/TS3Client.entitlements
+      path: App/SwiftSpeak.entitlements
       properties:
         com.apple.security.device.audio-input: true
     # Signing identity: ad-hoc unless Config/Local.xcconfig names a certificate.
@@ -38,8 +38,8 @@ targets:
       Release: Config/Signing.xcconfig
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.personal.ts3-client
-        PRODUCT_NAME: TS3 Client
+        PRODUCT_BUNDLE_IDENTIFIER: dev.personal.swiftspeak
+        PRODUCT_NAME: SwiftSpeak
         CODE_SIGN_STYLE: Manual
         ENABLE_HARDENED_RUNTIME: YES
         # One binary, no separate debug library: with a self-signed certificate (no Apple team ID)
@@ -52,9 +52,9 @@ targets:
       - package: TS3Kit
         product: TS3Audio
 schemes:
-  TS3Client:
+  SwiftSpeak:
     build:
       targets:
-        TS3Client: all
+        SwiftSpeak: all
     run:
       config: Debug

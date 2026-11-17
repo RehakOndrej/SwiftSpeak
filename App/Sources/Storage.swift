@@ -17,7 +17,7 @@ enum Storage {
         var serverPasswords: [String: String] = [:]
     }
 
-    private static let directory = URL.applicationSupportDirectory.appending(path: "TS3 Client", directoryHint: .isDirectory)
+    private static let directory = URL.applicationSupportDirectory.appending(path: "SwiftSpeak", directoryHint: .isDirectory)
     private static let secretsURL = directory.appending(path: "secrets.json")
 
     private static var secrets: Secrets = loadSecrets()
@@ -38,6 +38,35 @@ enum Storage {
         guard secrets.serverPasswords[key] ?? "" != password else { return }
         secrets.serverPasswords[key] = password.isEmpty ? nil : password
         saveSecrets()
+    }
+
+    // MARK: Rename migration
+
+    /// The app was called "TS3 Client" (bundle id `dev.personal.ts3-client`) before it became SwiftSpeak.
+    /// On the first SwiftSpeak launch, copy its Application Support folder (identity, server passwords,
+    /// custom sounds) and copy its preferences, so nothing is lost. A copy, not a move, so an old build still finds
+    /// its data. Runs before anything reads storage.
+    static func migrateFromTS3Client() {
+        let fm = FileManager.default
+        let oldDirectory = URL.applicationSupportDirectory.appending(path: "TS3 Client", directoryHint: .isDirectory)
+        if !fm.fileExists(atPath: directory.path(percentEncoded: false)),
+           fm.fileExists(atPath: oldDirectory.path(percentEncoded: false)) {
+            do {
+                try fm.copyItem(at: oldDirectory, to: directory)
+            } catch {
+                NSLog("SwiftSpeak: could not copy \(oldDirectory.path(percentEncoded: false)): \(error)")
+            }
+        }
+
+        let defaults = UserDefaults.standard
+        let migratedKey = "migratedFromTS3Client"
+        guard !defaults.bool(forKey: migratedKey) else { return }
+        if let old = defaults.persistentDomain(forName: "dev.personal.ts3-client") {
+            for (key, value) in old where defaults.object(forKey: key) == nil {
+                defaults.set(value, forKey: key)
+            }
+        }
+        defaults.set(true, forKey: migratedKey)
     }
 
     // MARK: Secrets file
@@ -69,7 +98,7 @@ enum Storage {
             try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: secretsURL.path(percentEncoded: false))
             return true
         } catch {
-            NSLog("TS3 Client: could not save secrets: \(error)")
+            NSLog("SwiftSpeak: could not save secrets: \(error)")
             return false
         }
     }

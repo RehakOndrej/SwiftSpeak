@@ -168,7 +168,7 @@ private struct AccessibilityNote: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Label("Keyboard hotkeys only work while TS3 Client is in front. Allow Accessibility access to use them from other apps.",
+            Label("Keyboard hotkeys only work while SwiftSpeak is in front. Allow Accessibility access to use them from other apps.",
                   systemImage: "exclamationmark.triangle.fill")
                 .font(.callout)
                 .foregroundStyle(.orange)
@@ -270,7 +270,7 @@ private struct ShortcutSettingsView: View {
                     }
                 }
             } footer: {
-                Text("These work in any app once TS3 Client has Accessibility access; extra mouse buttons work without it. Push to talk is set in Capture.")
+                Text("These work in any app once SwiftSpeak has Accessibility access; extra mouse buttons work without it. Push to talk is set in Capture.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

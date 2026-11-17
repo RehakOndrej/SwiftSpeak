@@ -12,7 +12,7 @@
 # Config/Local.xcconfig.
 set -euo pipefail
 
-NAME="TS3 Client Local Signing"
+NAME="SwiftSpeak Local Signing"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 

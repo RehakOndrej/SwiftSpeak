@@ -7,7 +7,7 @@ import TS3Kit
 /// Spoken notifications: one sound file per event, played at the sound pack volume on the playback device.
 ///
 /// Files are looked up by name (`connected.mp3`, `user_switched_tocurrentchannel.wav`, …) first in
-/// `~/Library/Application Support/TS3 Client/Sounds`, then in the app bundle (the default pack).
+/// `~/Library/Application Support/SwiftSpeak/Sounds`, then in the app bundle (the default pack).
 /// Events without a file are silent.
 @MainActor
 final class SoundPack {
@@ -18,7 +18,7 @@ final class SoundPack {
         case awayActivated = "away_activated", awayDeactivated = "away_deactivated"
     }
 
-    nonisolated static let folder = URL.applicationSupportDirectory.appending(path: "TS3 Client/Sounds", directoryHint: .isDirectory)
+    nonisolated static let folder = URL.applicationSupportDirectory.appending(path: "SwiftSpeak/Sounds", directoryHint: .isDirectory)
     nonisolated static let fileExtensions = ["mp3", "wav", "m4a", "aiff", "aif", "caf"]
     static let allNames: [String] = ClientEvent.allCases.map(\.soundName) + LocalEvent.allCases.map(\.rawValue)
 

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>TS3 Client</string>
+	<string>SwiftSpeak</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -23,6 +23,6 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.social-networking</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>TS3 Client sends your voice to the TeamSpeak channel you are in.</string>
+	<string>SwiftSpeak sends your voice to the TeamSpeak channel you are in.</string>
 </dict>
 </plist>

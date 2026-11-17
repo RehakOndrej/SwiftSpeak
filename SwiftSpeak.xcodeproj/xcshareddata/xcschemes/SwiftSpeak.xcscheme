@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "A0D78C15B85A83429E6BF9BA"
-               BuildableName = "TS3Client.app"
-               BlueprintName = "TS3Client"
-               ReferencedContainer = "container:TS3Client.xcodeproj">
+               BlueprintIdentifier = "D0EA6AA630E591AA9AF50C1E"
+               BuildableName = "SwiftSpeak.app"
+               BlueprintName = "SwiftSpeak"
+               ReferencedContainer = "container:SwiftSpeak.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A0D78C15B85A83429E6BF9BA"
-            BuildableName = "TS3Client.app"
-            BlueprintName = "TS3Client"
-            ReferencedContainer = "container:TS3Client.xcodeproj">
+            BlueprintIdentifier = "D0EA6AA630E591AA9AF50C1E"
+            BuildableName = "SwiftSpeak.app"
+            BlueprintName = "SwiftSpeak"
+            ReferencedContainer = "container:SwiftSpeak.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -55,10 +55,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A0D78C15B85A83429E6BF9BA"
-            BuildableName = "TS3Client.app"
-            BlueprintName = "TS3Client"
-            ReferencedContainer = "container:TS3Client.xcodeproj">
+            BlueprintIdentifier = "D0EA6AA630E591AA9AF50C1E"
+            BuildableName = "SwiftSpeak.app"
+            BlueprintName = "SwiftSpeak"
+            ReferencedContainer = "container:SwiftSpeak.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -74,10 +74,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A0D78C15B85A83429E6BF9BA"
-            BuildableName = "TS3Client.app"
-            BlueprintName = "TS3Client"
-            ReferencedContainer = "container:TS3Client.xcodeproj">
+            BlueprintIdentifier = "D0EA6AA630E591AA9AF50C1E"
+            BuildableName = "SwiftSpeak.app"
+            BlueprintName = "SwiftSpeak"
+            ReferencedContainer = "container:SwiftSpeak.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
