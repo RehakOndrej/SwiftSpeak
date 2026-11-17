@@ -26,7 +26,8 @@ let package = Package(
             dependencies: [
                 "CEd25519",
                 .product(name: "BigInt", package: "BigInt"),
-            ]
+            ],
+            exclude: ["Protocol/LICENSE-quicklz.txt"]
         ),
         // Callable wrappers for the variadic opus_encoder_ctl.
         .target(

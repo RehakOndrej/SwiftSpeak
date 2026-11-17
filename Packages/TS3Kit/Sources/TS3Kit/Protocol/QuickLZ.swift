@@ -2,8 +2,8 @@ import Foundation
 
 /// QuickLZ decompression (levels 1 and 3), needed for compressed server commands.
 ///
-/// Port of the decompressor in Flakebi's `quicklz` Rust crate (MIT OR Apache-2.0),
-/// https://github.com/ReSpeak/quicklz. Only decompression is implemented:
+/// Port of the decompressor in Flakebi's `quicklz` Rust crate (MIT OR Apache-2.0, used under MIT,
+/// see LICENSE-quicklz.txt), https://github.com/ReSpeak/quicklz. Only decompression is implemented:
 /// the client never has to compress, it can always send uncompressed fragments.
 enum QuickLZ {
     struct CorruptData: Error {
